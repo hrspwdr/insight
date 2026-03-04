@@ -2,3 +2,5 @@ node_modules/
 dist/
 data/insight.json
 .env
+fly.toml
+.github/
