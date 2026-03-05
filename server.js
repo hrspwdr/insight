@@ -99,7 +99,58 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_orders_contact ON orders(contactId);
   CREATE INDEX IF NOT EXISTS idx_problems_contact ON active_problems(contactId);
   CREATE INDEX IF NOT EXISTS idx_related_contact ON related_charts(contactId);
+
+  CREATE VIRTUAL TABLE IF NOT EXISTS search_index USING fts5(
+    entityType,
+    entityId,
+    contactId,
+    contactName,
+    content,
+    content_rowid='rowid'
+  );
 `);
+
+// ─── FTS rebuild ───
+
+function rebuildSearchIndex() {
+  db.prepare("DELETE FROM search_index").run();
+
+  const insertIdx = db.prepare(
+    "INSERT INTO search_index (entityType, entityId, contactId, contactName, content) VALUES (?, ?, ?, ?, ?)"
+  );
+
+  const rebuild = db.transaction(() => {
+    // Index contacts (name + notes)
+    for (const c of db.prepare("SELECT * FROM contacts").all()) {
+      insertIdx.run("contact", c.id, c.id, c.name, [c.name, c.context, c.notes].filter(Boolean).join(" "));
+    }
+
+    // Index encounters (narrative + assessment + plan)
+    for (const e of db.prepare("SELECT e.*, c.name as contactName FROM encounters e JOIN contacts c ON e.contactId = c.id").all()) {
+      const text = [e.narrative, e.assessment, e.plan, e.followUpComment].filter(Boolean).join(" ");
+      if (text.trim()) {
+        insertIdx.run("encounter", e.id, e.contactId, e.contactName, text);
+      }
+    }
+
+    // Index orders (description + completionNote)
+    for (const o of db.prepare("SELECT o.*, c.name as contactName FROM orders o JOIN contacts c ON o.contactId = c.id").all()) {
+      const text = [o.description, o.completionNote].filter(Boolean).join(" ");
+      if (text.trim()) {
+        insertIdx.run("order", o.id, o.contactId, o.contactName, text);
+      }
+    }
+
+    // Index problems
+    for (const p of db.prepare("SELECT p.*, c.name as contactName FROM active_problems p JOIN contacts c ON p.contactId = c.id").all()) {
+      if (p.text.trim()) {
+        insertIdx.run("problem", p.id, p.contactId, p.contactName, p.text);
+      }
+    }
+  });
+
+  rebuild();
+}
 
 // ─── JSON → SQLite migration ───
 
@@ -183,6 +234,7 @@ function migrateFromJson() {
 }
 
 migrateFromJson();
+rebuildSearchIndex();
 
 // ─── DB read/write helpers (same blob shape as before) ───
 
@@ -331,6 +383,41 @@ function putAllData(data) {
   });
 
   writeAll();
+  rebuildSearchIndex();
+}
+
+// ─── Search helper ───
+
+function searchData(query) {
+  if (!query || query.trim().length === 0) return [];
+
+  // Escape FTS5 special characters and add prefix matching
+  const sanitized = query.trim().replace(/['"*()]/g, "").split(/\s+/).filter(Boolean);
+  if (sanitized.length === 0) return [];
+
+  const ftsQuery = sanitized.map((t) => `"${t}"*`).join(" AND ");
+
+  try {
+    const results = db.prepare(`
+      SELECT entityType, entityId, contactId, contactName,
+             snippet(search_index, 4, '>>>','<<<', '...', 48) as snippet,
+             rank
+      FROM search_index
+      WHERE search_index MATCH ?
+      ORDER BY rank
+      LIMIT 50
+    `).all(ftsQuery);
+
+    return results.map((r) => ({
+      type: r.entityType,
+      id: r.entityId,
+      contactId: r.contactId,
+      contactName: r.contactName,
+      snippet: r.snippet,
+    }));
+  } catch {
+    return [];
+  }
 }
 
 // ─── Fastify setup ───
@@ -552,6 +639,16 @@ fastify.put("/api/data", { preHandler: authRequired }, async (request, reply) =>
     fastify.log.error(err);
     reply.status(500);
     return { ok: false, error: err.message };
+  }
+});
+
+fastify.get("/api/search", { preHandler: authRequired }, async (request, reply) => {
+  try {
+    const q = request.query.q || "";
+    return searchData(q);
+  } catch (err) {
+    fastify.log.error(err);
+    return [];
   }
 });
 
