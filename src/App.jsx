@@ -150,6 +150,7 @@ const styles = `
     display: flex;
     flex-direction: column;
     height: 100vh;
+    height: 100dvh;
   }
 
   .sidebar-header {
@@ -265,6 +266,7 @@ const styles = `
   .sidebar-footer {
     padding: 12px 16px;
     border-top: 1px solid var(--border);
+    flex-shrink: 0;
   }
 
   .btn-new-contact {
@@ -934,11 +936,19 @@ const styles = `
       width: 100%;
       min-width: 100%;
       height: 100vh;
+      height: 100dvh;
       position: fixed;
       top: 0;
       left: 0;
       z-index: 20;
       transition: transform 0.25s ease;
+    }
+
+    .sidebar-footer {
+      padding: 12px 16px;
+      padding-bottom: max(12px, env(safe-area-inset-bottom, 12px));
+      border-top: 1px solid var(--border);
+      flex-shrink: 0;
     }
 
     .sidebar.hidden {
