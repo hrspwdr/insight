@@ -5,6 +5,7 @@ import ChartView from "./ChartView";
 import Dashboard from "./Dashboard";
 import { ContactModal, QuickCaptureModal } from "./Modals";
 import SearchView from "./SearchView";
+import TagFilterView from "./TagFilterView";
 
 export default function App() {
   const [contacts, setContacts] = useState({});
@@ -17,6 +18,15 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [globalSearch, setGlobalSearch] = useState("");
   const [showSearch, setShowSearch] = useState(false);
+  const [allTags, setAllTags] = useState([]);
+  const [filterTag, setFilterTag] = useState(null);
+
+  const refreshTags = useCallback(async () => {
+    try {
+      const res = await fetch("/api/tags");
+      if (res.ok) setAllTags(await res.json());
+    } catch { /* ignore */ }
+  }, []);
 
   useEffect(() => {
     const load = async () => {
@@ -36,9 +46,10 @@ export default function App() {
         console.error("Failed to load:", e);
       }
       setLoading(false);
+      refreshTags();
     };
     load();
-  }, []);
+  }, [refreshTags]);
 
   const save = useCallback(async (data) => {
     try {
@@ -57,8 +68,8 @@ export default function App() {
 
   const updateContacts = useCallback((newContacts) => {
     setContacts(newContacts);
-    save(newContacts);
-  }, [save]);
+    save(newContacts).then(() => refreshTags());
+  }, [save, refreshTags]);
 
   const handleSaveContact = (contact) => {
     const updated = { ...contacts, [contact.id]: contact };
@@ -223,23 +234,40 @@ export default function App() {
         </div>
 
         <div className="main">
-          {/* Global search bar */}
+          {/* Global search bar + tag filters */}
           {Object.keys(contacts).length > 0 && (
             <div className="global-search-bar">
               <input
                 className="global-search-input"
                 placeholder="Search everything..."
                 value={globalSearch}
-                onChange={(e) => { setGlobalSearch(e.target.value); setShowSearch(true); }}
+                onChange={(e) => { setGlobalSearch(e.target.value); setShowSearch(true); setFilterTag(null); }}
                 onFocus={() => { if (globalSearch.length >= 2) setShowSearch(true); }}
               />
-              {showSearch && globalSearch && (
+              {(showSearch && globalSearch) || filterTag ? (
                 <button
                   className="global-search-clear"
-                  onClick={() => { setGlobalSearch(""); setShowSearch(false); }}
+                  onClick={() => { setGlobalSearch(""); setShowSearch(false); setFilterTag(null); }}
                 >
                   ×
                 </button>
+              ) : null}
+              {allTags.length > 0 && (
+                <div className="tag-filter-chips">
+                  {allTags.map((tag) => (
+                    <button
+                      key={tag}
+                      className={`tag-filter-chip ${filterTag === tag ? "active" : ""}`}
+                      onClick={() => {
+                        setFilterTag(filterTag === tag ? null : tag);
+                        setGlobalSearch("");
+                        setShowSearch(false);
+                      }}
+                    >
+                      {tag}
+                    </button>
+                  ))}
+                </div>
               )}
             </div>
           )}
@@ -251,6 +279,12 @@ export default function App() {
               onSelectContact={(id) => handleSelectContact(id)}
               onClose={() => { setShowSearch(false); setGlobalSearch(""); }}
             />
+          ) : filterTag ? (
+            <TagFilterView
+              tag={filterTag}
+              contacts={contacts}
+              onSelectContact={(id) => { setFilterTag(null); handleSelectContact(id); }}
+            />
           ) : activeContact ? (
             <ChartView
               contact={activeContact}
@@ -260,9 +294,10 @@ export default function App() {
               onBack={() => { setActiveContactId(null); setSidebarOpen(true); }}
               onDelete={handleDeleteContact}
               onNavigate={(id) => handleSelectContact(id)}
+              allTags={allTags}
             />
           ) : (
-            <Dashboard contacts={contacts} onSelectContact={handleSelectContact} />
+            <Dashboard contacts={contacts} onSelectContact={handleSelectContact} allTags={allTags} />
           )}
         </div>
       </div>

@@ -17,7 +17,7 @@ const PRESETS = [
   { key: "custom", label: "Custom", desc: "Configure your own export" },
 ];
 
-export default function ExportModal({ chartData, onClose, isMulti = false }) {
+export default function ExportModal({ chartData, onClose, isMulti = false, allTags = [] }) {
   const [preset, setPreset] = useState("meeting-prep");
   const [config, setConfig] = useState(getPresetConfig("meeting-prep"));
   const [format, setFormat] = useState("markdown"); // "markdown" | "pdf"
@@ -41,6 +41,19 @@ export default function ExportModal({ chartData, onClose, isMulti = false }) {
         [section]: !prev.includeSections[section],
       },
     }));
+  };
+
+  const toggleFilterTag = (tag) => {
+    setPreset("custom");
+    setConfig((prev) => {
+      const tags = prev.filterTags || [];
+      return {
+        ...prev,
+        filterTags: tags.includes(tag)
+          ? tags.filter((t) => t !== tag)
+          : [...tags, tag],
+      };
+    });
   };
 
   const toggleEncounterType = (type) => {
@@ -164,6 +177,28 @@ export default function ExportModal({ chartData, onClose, isMulti = false }) {
             ))}
           </div>
         </div>
+
+        {/* Tag filter */}
+        {allTags.length > 0 && (
+          <div className="export-config-section">
+            <span className="export-row-label">Filter by Project Tag</span>
+            <div className="export-checkboxes">
+              {allTags.map((t) => (
+                <label key={t} className="export-checkbox">
+                  <input
+                    type="checkbox"
+                    checked={config.filterTags?.includes(t) || false}
+                    onChange={() => toggleFilterTag(t)}
+                  />
+                  {t}
+                </label>
+              ))}
+            </div>
+            <div className="export-hint">
+              {(!config.filterTags || config.filterTags.length === 0) && "All tags included (no filter)"}
+            </div>
+          </div>
+        )}
 
         {/* Encounter type filter */}
         {config.includeSections.encounters && (

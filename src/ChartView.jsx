@@ -4,7 +4,7 @@ import { EncounterModal, ResolveModal, ProblemModal, OrderModal, ContactModal, C
 import RelatedChartsPicker from "./RelatedCharts";
 import ExportModal from "./ExportModal";
 
-export default function ChartView({ contact, contacts, onUpdate, onUpdateOther, onBack, onDelete, onNavigate }) {
+export default function ChartView({ contact, contacts, onUpdate, onUpdateOther, onBack, onDelete, onNavigate, allTags = [] }) {
   const [showEncounterModal, setShowEncounterModal] = useState(false);
   const [editingEncounter, setEditingEncounter] = useState(null);
   const [showProblemModal, setShowProblemModal] = useState(false);
@@ -262,6 +262,9 @@ export default function ChartView({ contact, contacts, onUpdate, onUpdateOther, 
                             from {formatDate(sourceEnc.date)} {sourceEnc.type.toLowerCase()}
                           </span>
                         )}
+                        {order.tags?.length > 0 && order.tags.map((t) => (
+                          <span key={t} className="tag-badge small">{t}</span>
+                        ))}
                       </div>
                     </div>
                     <div className="order-actions">
@@ -314,7 +317,12 @@ export default function ChartView({ contact, contacts, onUpdate, onUpdateOther, 
               <div className={`encounter-card ${overdue ? "has-overdue" : ""}`} key={enc.id}>
                 <div className="encounter-header">
                   <span className="encounter-date">{formatDate(enc.date)}</span>
-                  <span className="encounter-type">{enc.type}</span>
+                  <div className="encounter-header-right">
+                    {enc.tags?.length > 0 && enc.tags.map((t) => (
+                      <span key={t} className="tag-badge">{t}</span>
+                    ))}
+                    <span className="encounter-type">{enc.type}</span>
+                  </div>
                 </div>
                 {enc.narrative && (
                   <div className="encounter-field">
@@ -385,6 +393,7 @@ export default function ChartView({ contact, contacts, onUpdate, onUpdateOther, 
           encounter={editingEncounter}
           onSave={handleSaveEncounter}
           onClose={() => { setShowEncounterModal(false); setEditingEncounter(null); }}
+          allTags={allTags}
         />
       )}
       {showResolveModal && (
@@ -416,6 +425,7 @@ export default function ChartView({ contact, contacts, onUpdate, onUpdateOther, 
           order={editingOrder || (orderFromPlan ? { description: orderFromPlan.description, sourceEncounterId: orderFromPlan.sourceEncounterId } : null)}
           onSave={handleSaveOrder}
           onClose={() => { setShowOrderModal(false); setEditingOrder(null); setOrderFromPlan(null); }}
+          allTags={allTags}
         />
       )}
       {showDeleteOrder && (
@@ -429,6 +439,7 @@ export default function ChartView({ contact, contacts, onUpdate, onUpdateOther, 
         <ExportModal
           chartData={[contact]}
           onClose={() => setShowExport(false)}
+          allTags={allTags}
         />
       )}
     </div>

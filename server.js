@@ -110,6 +110,10 @@ db.exec(`
   );
 `);
 
+// ─── Schema migration: add tags column ───
+try { db.exec("ALTER TABLE encounters ADD COLUMN tags TEXT NOT NULL DEFAULT '[]'"); } catch { /* column already exists */ }
+try { db.exec("ALTER TABLE orders ADD COLUMN tags TEXT NOT NULL DEFAULT '[]'"); } catch { /* column already exists */ }
+
 // ─── FTS rebuild ───
 
 function rebuildSearchIndex() {
@@ -125,17 +129,21 @@ function rebuildSearchIndex() {
       insertIdx.run("contact", c.id, c.id, c.name, [c.name, c.context, c.notes].filter(Boolean).join(" "));
     }
 
-    // Index encounters (narrative + assessment + plan)
+    // Index encounters (narrative + assessment + plan + tags)
     for (const e of db.prepare("SELECT e.*, c.name as contactName FROM encounters e JOIN contacts c ON e.contactId = c.id").all()) {
-      const text = [e.narrative, e.assessment, e.plan, e.followUpComment].filter(Boolean).join(" ");
+      let tags = [];
+      try { tags = JSON.parse(e.tags || "[]"); } catch { /* ignore */ }
+      const text = [e.narrative, e.assessment, e.plan, e.followUpComment, ...tags].filter(Boolean).join(" ");
       if (text.trim()) {
         insertIdx.run("encounter", e.id, e.contactId, e.contactName, text);
       }
     }
 
-    // Index orders (description + completionNote)
+    // Index orders (description + completionNote + tags)
     for (const o of db.prepare("SELECT o.*, c.name as contactName FROM orders o JOIN contacts c ON o.contactId = c.id").all()) {
-      const text = [o.description, o.completionNote].filter(Boolean).join(" ");
+      let tags = [];
+      try { tags = JSON.parse(o.tags || "[]"); } catch { /* ignore */ }
+      const text = [o.description, o.completionNote, ...tags].filter(Boolean).join(" ");
       if (text.trim()) {
         insertIdx.run("order", o.id, o.contactId, o.contactName, text);
       }
@@ -263,6 +271,8 @@ function getAllData() {
 
   for (const e of encounters) {
     if (result[e.contactId]) {
+      let tags = [];
+      try { tags = JSON.parse(e.tags || "[]"); } catch { /* ignore */ }
       result[e.contactId].encounters.push({
         id: e.id,
         date: e.date,
@@ -273,12 +283,15 @@ function getAllData() {
         followUpDate: e.followUpDate,
         followUpResolved: e.followUpResolved === 1,
         followUpComment: e.followUpComment,
+        tags,
       });
     }
   }
 
   for (const o of orders) {
     if (result[o.contactId]) {
+      let tags = [];
+      try { tags = JSON.parse(o.tags || "[]"); } catch { /* ignore */ }
       result[o.contactId].orders.push({
         id: o.id,
         description: o.description,
@@ -287,6 +300,7 @@ function getAllData() {
         completionNote: o.completionNote,
         sourceEncounterId: o.sourceEncounterId,
         createdAt: o.createdAt,
+        tags,
       });
     }
   }
@@ -323,12 +337,12 @@ function putAllData(data) {
     "INSERT INTO contacts (id, name, context, notes, createdAt) VALUES (?, ?, ?, ?, ?)"
   );
   const insertEncounter = db.prepare(
-    `INSERT INTO encounters (id, contactId, date, type, narrative, assessment, plan, followUpDate, followUpResolved, followUpComment)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    `INSERT INTO encounters (id, contactId, date, type, narrative, assessment, plan, followUpDate, followUpResolved, followUpComment, tags)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   );
   const insertOrder = db.prepare(
-    `INSERT INTO orders (id, contactId, description, dueDate, status, completionNote, sourceEncounterId, createdAt)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+    `INSERT INTO orders (id, contactId, description, dueDate, status, completionNote, sourceEncounterId, createdAt, tags)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
   );
   const insertProblem = db.prepare(
     "INSERT INTO active_problems (id, contactId, text, addedAt) VALUES (?, ?, ?, ?)"
@@ -355,7 +369,8 @@ function putAllData(data) {
         insertEncounter.run(
           enc.id, id, enc.date || "", enc.type || "", enc.narrative || "",
           enc.assessment || "", enc.plan || "", enc.followUpDate || null,
-          enc.followUpResolved ? 1 : 0, enc.followUpComment || null
+          enc.followUpResolved ? 1 : 0, enc.followUpComment || null,
+          JSON.stringify(enc.tags || [])
         );
       }
 
@@ -363,7 +378,8 @@ function putAllData(data) {
         insertOrder.run(
           ord.id, id, ord.description || "", ord.dueDate || null,
           ord.status || "open", ord.completionNote || null,
-          ord.sourceEncounterId || null, ord.createdAt || new Date().toISOString()
+          ord.sourceEncounterId || null, ord.createdAt || new Date().toISOString(),
+          JSON.stringify(ord.tags || [])
         );
       }
 
@@ -646,6 +662,18 @@ fastify.get("/api/search", { preHandler: authRequired }, async (request, reply) 
   try {
     const q = request.query.q || "";
     return searchData(q);
+  } catch (err) {
+    fastify.log.error(err);
+    return [];
+  }
+});
+
+fastify.get("/api/tags", { preHandler: authRequired }, async (request, reply) => {
+  try {
+    const encTags = db.prepare("SELECT DISTINCT value FROM encounters, json_each(encounters.tags)").all();
+    const ordTags = db.prepare("SELECT DISTINCT value FROM orders, json_each(orders.tags)").all();
+    const all = [...new Set([...encTags, ...ordTags].map((r) => r.value))].sort();
+    return all;
   } catch (err) {
     fastify.log.error(err);
     return [];

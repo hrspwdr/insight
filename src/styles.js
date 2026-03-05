@@ -1510,5 +1510,165 @@ const styles = `
       gap: 8px;
     }
   }
+
+  /* ─── Tag Badges (display) ─── */
+  .tag-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    background: var(--accent-light);
+    color: var(--accent);
+    border-radius: 10px;
+    font-size: 10.5px;
+    font-weight: 500;
+    white-space: nowrap;
+  }
+
+  .tag-badge.small {
+    font-size: 10px;
+    padding: 1px 6px;
+  }
+
+  .encounter-header-right {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+
+  /* ─── Tag Input (modals) ─── */
+  .tag-input-wrapper {
+    position: relative;
+  }
+
+  .tag-input-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    padding: 6px 10px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--bg-primary);
+    min-height: 36px;
+    align-items: center;
+    cursor: text;
+    transition: border-color 0.15s;
+  }
+
+  .tag-input-container:focus-within {
+    border-color: var(--accent);
+  }
+
+  .tag-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    background: var(--accent-light);
+    color: var(--accent);
+    border-radius: 10px;
+    font-size: 12px;
+    font-weight: 500;
+    white-space: nowrap;
+  }
+
+  .tag-chip-remove {
+    background: none;
+    border: none;
+    color: var(--accent);
+    cursor: pointer;
+    font-size: 13px;
+    padding: 0;
+    line-height: 1;
+    opacity: 0.6;
+  }
+
+  .tag-chip-remove:hover {
+    opacity: 1;
+  }
+
+  .tag-input-field {
+    border: none;
+    outline: none;
+    background: transparent;
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    color: var(--text-primary);
+    flex: 1;
+    min-width: 80px;
+    padding: 2px 0;
+  }
+
+  .tag-input-field::placeholder {
+    color: var(--text-muted);
+  }
+
+  .tag-suggestions {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    margin-top: 4px;
+    max-height: 160px;
+    overflow-y: auto;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+    z-index: 20;
+  }
+
+  .tag-suggestion-item {
+    padding: 8px 12px;
+    cursor: pointer;
+    font-size: 13px;
+    transition: background 0.1s;
+  }
+
+  .tag-suggestion-item:hover {
+    background: var(--accent-light);
+    color: var(--accent);
+  }
+
+  /* ─── Tag Filter Chips (global bar) ─── */
+  .tag-filter-chips {
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+  }
+
+  .tag-filter-chip {
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 500;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text-secondary);
+    cursor: pointer;
+    font-family: 'Inter', sans-serif;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+
+  .tag-filter-chip:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  .tag-filter-chip.active {
+    background: var(--accent);
+    color: white;
+    border-color: var(--accent);
+  }
+
+  @media (max-width: 768px) {
+    .global-search-bar {
+      flex-wrap: wrap;
+    }
+
+    .tag-filter-chips {
+      width: 100%;
+    }
+  }
 `;
 export default styles;

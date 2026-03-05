@@ -15,6 +15,11 @@ export function filterEncounters(encounters, config) {
   if (config.encounterTypes && config.encounterTypes.length > 0) {
     filtered = filtered.filter((e) => config.encounterTypes.includes(e.type));
   }
+  if (config.filterTags && config.filterTags.length > 0) {
+    filtered = filtered.filter((e) =>
+      e.tags?.some((t) => config.filterTags.includes(t))
+    );
+  }
 
   return filtered.sort((a, b) => new Date(b.date) - new Date(a.date));
 }
@@ -22,11 +27,17 @@ export function filterEncounters(encounters, config) {
 export function filterOrders(orders, config) {
   if (!orders) return [];
   if (config.ordersMode === "none") return [];
-  if (config.ordersMode === "active") {
-    return orders.filter((o) => o.status === "open" || o.status === "in-progress");
+  let filtered = config.ordersMode === "active"
+    ? orders.filter((o) => o.status === "open" || o.status === "in-progress")
+    : [...orders];
+
+  if (config.filterTags && config.filterTags.length > 0) {
+    filtered = filtered.filter((o) =>
+      o.tags?.some((t) => config.filterTags.includes(t))
+    );
   }
-  // "all"
-  return [...orders];
+
+  return filtered;
 }
 
 // ─── Preset configs ───
@@ -41,6 +52,7 @@ export function getPresetConfig(preset) {
       dateFrom: thirtyAgo.toISOString().split("T")[0],
       dateTo: "",
       encounterTypes: [],
+      filterTags: [],
       includeSections: { background: true, problems: true, orders: true, encounters: true, followUps: true },
       ordersMode: "active",
     };
@@ -55,6 +67,7 @@ export function getPresetConfig(preset) {
       dateFrom: sevenAgo.toISOString().split("T")[0],
       dateTo: sevenAhead.toISOString().split("T")[0],
       encounterTypes: [],
+      filterTags: [],
       includeSections: { background: true, problems: true, orders: true, encounters: true, followUps: true },
       ordersMode: "active",
     };
@@ -65,6 +78,7 @@ export function getPresetConfig(preset) {
       dateFrom: "",
       dateTo: "",
       encounterTypes: [],
+      filterTags: [],
       includeSections: { background: true, problems: true, orders: true, encounters: true, followUps: true },
       ordersMode: "all",
     };
@@ -75,6 +89,7 @@ export function getPresetConfig(preset) {
     dateFrom: "",
     dateTo: "",
     encounterTypes: [],
+    filterTags: [],
     includeSections: { background: true, problems: true, orders: true, encounters: true, followUps: true },
     ordersMode: "active",
   };
@@ -115,7 +130,8 @@ function chartToMarkdown(contact, config) {
             ? ` — **${daysOverdue(o.dueDate)}d overdue**`
             : ` — due ${formatDate(o.dueDate)}`
           : "";
-        lines.push(`- [${o.status}] ${o.description}${dueStr}`);
+        const tagStr = o.tags?.length > 0 ? ` [${o.tags.join(", ")}]` : "";
+        lines.push(`- [${o.status}] ${o.description}${dueStr}${tagStr}`);
         if (o.completionNote) lines.push(`  - _${o.completionNote}_`);
       });
     }
@@ -149,7 +165,8 @@ function chartToMarkdown(contact, config) {
       lines.push("### Encounters");
       encounters.forEach((e) => {
         lines.push("");
-        lines.push(`**${formatDate(e.date)}** — ${e.type}`);
+        const tagStr = e.tags?.length > 0 ? ` [${e.tags.join(", ")}]` : "";
+        lines.push(`**${formatDate(e.date)}** — ${e.type}${tagStr}`);
         if (e.narrative) lines.push(`\n${e.narrative}`);
         if (e.assessment) lines.push(`\n*Assessment:* ${e.assessment}`);
         if (e.plan) lines.push(`\n*Plan:* ${e.plan}`);

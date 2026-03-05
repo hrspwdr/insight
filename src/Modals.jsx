@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { CONTACT_CONTEXTS, ENCOUNTER_TYPES, ORDER_STATUSES, generateId } from "./utils";
+import TagInput from "./TagInput";
 
 export function ContactModal({ contact, onSave, onClose }) {
   const [name, setName] = useState(contact?.name || "");
@@ -47,13 +48,14 @@ export function ContactModal({ contact, onSave, onClose }) {
   );
 }
 
-export function EncounterModal({ encounter, onSave, onClose }) {
+export function EncounterModal({ encounter, onSave, onClose, allTags = [] }) {
   const [date, setDate] = useState(encounter?.date || new Date().toISOString().split("T")[0]);
   const [type, setType] = useState(encounter?.type || ENCOUNTER_TYPES[0]);
   const [narrative, setNarrative] = useState(encounter?.narrative || "");
   const [assessment, setAssessment] = useState(encounter?.assessment || "");
   const [plan, setPlan] = useState(encounter?.plan || "");
   const [followUpDate, setFollowUpDate] = useState(encounter?.followUpDate || "");
+  const [tags, setTags] = useState(encounter?.tags || []);
 
   const handleSave = () => {
     onSave({
@@ -66,6 +68,7 @@ export function EncounterModal({ encounter, onSave, onClose }) {
       followUpDate: followUpDate || null,
       followUpResolved: encounter?.followUpResolved || false,
       followUpComment: encounter?.followUpComment || null,
+      tags,
     });
   };
 
@@ -100,6 +103,10 @@ export function EncounterModal({ encounter, onSave, onClose }) {
         <div className="form-group">
           <label>Follow-up Date (optional)</label>
           <input type="date" value={followUpDate || ""} onChange={(e) => setFollowUpDate(e.target.value)} />
+        </div>
+        <div className="form-group">
+          <label>Project Tags</label>
+          <TagInput tags={tags} allTags={allTags} onChange={setTags} />
         </div>
         <div className="form-actions">
           <button className="btn-cancel" onClick={onClose}>Cancel</button>
@@ -154,11 +161,12 @@ export function ProblemModal({ onSave, onClose }) {
   );
 }
 
-export function OrderModal({ order, onSave, onClose }) {
+export function OrderModal({ order, onSave, onClose, allTags = [] }) {
   const [description, setDescription] = useState(order?.description || "");
   const [dueDate, setDueDate] = useState(order?.dueDate || "");
   const [status, setStatus] = useState(order?.status || "open");
   const [completionNote, setCompletionNote] = useState(order?.completionNote || "");
+  const [tags, setTags] = useState(order?.tags || []);
 
   const handleSave = () => {
     if (!description.trim()) return;
@@ -170,6 +178,7 @@ export function OrderModal({ order, onSave, onClose }) {
       completionNote: (status === "completed" || status === "cancelled") ? completionNote.trim() || null : null,
       sourceEncounterId: order?.sourceEncounterId || null,
       createdAt: order?.createdAt || new Date().toISOString(),
+      tags,
     });
   };
 
@@ -212,6 +221,10 @@ export function OrderModal({ order, onSave, onClose }) {
             />
           </div>
         )}
+        <div className="form-group">
+          <label>Project Tags</label>
+          <TagInput tags={tags} allTags={allTags} onChange={setTags} />
+        </div>
         <div className="form-actions">
           <button className="btn-cancel" onClick={onClose}>Cancel</button>
           <button className="btn-save" onClick={handleSave}>Save</button>
