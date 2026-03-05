@@ -4,3 +4,4 @@ data/insight.json
 .env
 fly.toml
 .github/
+.DS_Store
