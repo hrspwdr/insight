@@ -4,6 +4,7 @@ const API_URL = "/api/data";
 
 const CONTACT_CONTEXTS = ["MUHC/CCT", "Territorial", "Provincial", "Committee", "Community", "Personal"];
 const ENCOUNTER_TYPES = ["Meeting", "Call", "Email", "Informal", "Presentation", "Note"];
+const ORDER_STATUSES = ["open", "in-progress", "completed", "cancelled"];
 
 const generateId = () => Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
 
@@ -56,6 +57,49 @@ const daysUntil = (dateStr) => {
   return Math.floor(diff / (1000 * 60 * 60 * 24));
 };
 
+const isOrderOverdue = (order) => {
+  if (!order.dueDate || order.status === "completed" || order.status === "cancelled") return false;
+  return new Date(order.dueDate) < new Date(new Date().toISOString().split("T")[0]);
+};
+
+const getOverdueOrders = (allContacts) => {
+  const results = [];
+  Object.values(allContacts).forEach((contact) => {
+    (contact.orders || []).forEach((order) => {
+      if (isOrderOverdue(order)) {
+        results.push({ contact, order });
+      }
+    });
+  });
+  return results.sort((a, b) => new Date(a.order.dueDate) - new Date(b.order.dueDate));
+};
+
+const getUpcomingOrders = (allContacts, days = 7) => {
+  const today = new Date(new Date().toISOString().split("T")[0]);
+  const cutoff = new Date(today);
+  cutoff.setDate(cutoff.getDate() + days);
+  const results = [];
+  Object.values(allContacts).forEach((contact) => {
+    (contact.orders || []).forEach((order) => {
+      if (order.status === "completed" || order.status === "cancelled") return;
+      if (!order.dueDate) return;
+      const d = new Date(order.dueDate);
+      if (d >= today && d <= cutoff) {
+        results.push({ contact, order, date: d });
+      }
+    });
+  });
+  return results.sort((a, b) => a.date - b.date);
+};
+
+const getActiveOrderCount = (contact) => {
+  return (contact.orders || []).filter((o) => o.status === "open" || o.status === "in-progress").length;
+};
+
+const contactHasOverdueOrders = (contact) => {
+  return (contact.orders || []).some(isOrderOverdue);
+};
+
 // ─── Styles ───
 
 const styles = `
@@ -106,6 +150,7 @@ const styles = `
     display: flex;
     flex-direction: column;
     height: 100vh;
+    height: 100dvh;
   }
 
   .sidebar-header {
@@ -221,6 +266,7 @@ const styles = `
   .sidebar-footer {
     padding: 12px 16px;
     border-top: 1px solid var(--border);
+    flex-shrink: 0;
   }
 
   .btn-new-contact {
@@ -728,6 +774,326 @@ const styles = `
   .btn-encounter-action:hover { border-color: var(--accent); color: var(--accent); }
   .btn-encounter-action.danger:hover { border-color: var(--red); color: var(--red); }
 
+  /* ─── Orders ─── */
+  .orders-section {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px 24px;
+    margin-bottom: 20px;
+  }
+
+  .order-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border-light);
+  }
+
+  .order-item:last-child { border-bottom: none; }
+
+  .order-status-badge {
+    font-size: 10.5px;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-weight: 500;
+    white-space: nowrap;
+    cursor: pointer;
+    min-width: 72px;
+    text-align: center;
+    margin-top: 2px;
+  }
+
+  .order-status-badge.open { background: var(--accent-light); color: var(--accent); }
+  .order-status-badge.in-progress { background: var(--yellow-light); color: var(--yellow); }
+  .order-status-badge.completed { background: var(--green-light); color: var(--green); }
+  .order-status-badge.cancelled { background: var(--bg-secondary); color: var(--text-muted); text-decoration: line-through; }
+
+  .order-content { flex: 1; min-width: 0; }
+  .order-description { font-size: 13.5px; color: var(--text-primary); line-height: 1.5; }
+  .order-description.done { text-decoration: line-through; color: var(--text-muted); }
+  .order-meta { font-size: 11.5px; color: var(--text-muted); margin-top: 3px; display: flex; gap: 8px; align-items: center; }
+  .order-meta .overdue { color: var(--red); font-weight: 500; }
+  .order-meta .source-link { color: var(--accent); cursor: pointer; }
+  .order-meta .source-link:hover { text-decoration: underline; }
+
+  .order-completion-note {
+    font-size: 12px;
+    color: var(--text-secondary);
+    font-style: italic;
+    margin-top: 4px;
+    padding-left: 12px;
+    border-left: 2px solid var(--green-light);
+  }
+
+  .order-actions {
+    display: flex;
+    gap: 4px;
+    opacity: 0;
+    transition: opacity 0.15s;
+  }
+
+  .order-item:hover .order-actions { opacity: 1; }
+
+  .btn-order-action {
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-family: 'Inter', sans-serif;
+  }
+
+  .btn-order-action:hover { border-color: var(--accent); color: var(--accent); }
+  .btn-order-action.danger:hover { border-color: var(--red); color: var(--red); }
+
+  .order-from-plan {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-family: 'Inter', sans-serif;
+    margin-top: 6px;
+    transition: all 0.15s;
+  }
+
+  .order-from-plan:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* ─── Quick Capture ─── */
+  .quick-capture-modal { width: 440px; }
+
+  .quick-capture-selected {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 9px 12px;
+    background: var(--bg-primary);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: 13.5px;
+  }
+
+  .quick-capture-ctx {
+    font-size: 11px;
+    color: var(--text-muted);
+  }
+
+  .quick-capture-change {
+    margin-left: auto;
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-family: 'Inter', sans-serif;
+  }
+
+  .quick-capture-change:hover { border-color: var(--accent); color: var(--accent); }
+
+  .quick-capture-picker { position: relative; }
+
+  .btn-quick-capture {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: white;
+    border: none;
+    font-size: 22px;
+    cursor: pointer;
+    box-shadow: 0 4px 16px rgba(217, 119, 87, 0.35);
+    z-index: 50;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.15s, transform 0.15s;
+    line-height: 1;
+  }
+
+  .btn-quick-capture:hover { background: var(--accent-hover); transform: scale(1.05); }
+
+  /* ─── Mobile / Responsive ─── */
+  @media (max-width: 768px) {
+    .app {
+      flex-direction: column;
+    }
+
+    .sidebar {
+      width: 100%;
+      min-width: 100%;
+      height: 100vh;
+      height: 100dvh;
+      position: fixed;
+      top: 0;
+      left: 0;
+      z-index: 20;
+      transition: transform 0.25s ease;
+    }
+
+    .sidebar-footer {
+      padding: 12px 16px;
+      padding-bottom: max(12px, env(safe-area-inset-bottom, 12px));
+      border-top: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+
+    .sidebar.hidden {
+      transform: translateX(-100%);
+    }
+
+    .main {
+      width: 100%;
+      min-height: 100vh;
+    }
+
+    .dashboard {
+      padding: 24px 16px;
+    }
+
+    .dashboard-stats {
+      grid-template-columns: repeat(2, 1fr) !important;
+      gap: 10px;
+    }
+
+    .stat-card {
+      padding: 14px 16px;
+    }
+
+    .stat-card .stat-value {
+      font-size: 22px;
+    }
+
+    .chart {
+      padding: 16px;
+    }
+
+    .chart-header {
+      padding: 18px 16px;
+    }
+
+    .chart-name {
+      font-size: 19px;
+    }
+
+    .chart-actions {
+      flex-wrap: wrap;
+    }
+
+    .problems-section,
+    .orders-section,
+    .related-section {
+      padding: 16px;
+    }
+
+    .encounter-card {
+      padding: 16px;
+    }
+
+    .encounter-actions {
+      opacity: 1;
+    }
+
+    .btn-encounter-action {
+      opacity: 1;
+    }
+
+    .order-actions {
+      opacity: 1;
+    }
+
+    .problem-remove {
+      opacity: 1;
+    }
+
+    .modal {
+      width: 95vw;
+      max-width: 95vw;
+      padding: 20px;
+      max-height: 90vh;
+    }
+
+    .quick-capture-modal {
+      width: 95vw;
+    }
+
+    .form-row {
+      grid-template-columns: 1fr;
+    }
+
+    .overdue-item,
+    .upcoming-item {
+      padding: 12px 14px;
+    }
+
+    .btn-quick-capture {
+      bottom: 20px;
+      right: 20px;
+    }
+
+    .mobile-header {
+      display: flex;
+      align-items: center;
+      padding: 12px 16px;
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border);
+      gap: 12px;
+    }
+
+    .mobile-header h1 {
+      font-family: 'Charis SIL', serif;
+      font-size: 18px;
+      font-weight: 700;
+      flex: 1;
+    }
+
+    .mobile-header .subtitle {
+      font-size: 10px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      font-style: italic;
+    }
+
+    .btn-mobile-menu {
+      padding: 6px 12px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--text-secondary);
+      font-family: 'Inter', sans-serif;
+      font-size: 13px;
+      cursor: pointer;
+    }
+
+    .btn-mobile-menu:hover { border-color: var(--accent); color: var(--accent); }
+
+    .sidebar-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.3);
+      z-index: 15;
+    }
+  }
+
+  @media (min-width: 769px) {
+    .mobile-header { display: none; }
+    .sidebar-overlay { display: none; }
+  }
+
   /* ─── Forms / Modals ─── */
   .modal-overlay {
     position: fixed;
@@ -1046,6 +1412,169 @@ function ProblemModal({ onSave, onClose }) {
   );
 }
 
+function OrderModal({ order, onSave, onClose }) {
+  const [description, setDescription] = useState(order?.description || "");
+  const [dueDate, setDueDate] = useState(order?.dueDate || "");
+  const [status, setStatus] = useState(order?.status || "open");
+  const [completionNote, setCompletionNote] = useState(order?.completionNote || "");
+
+  const handleSave = () => {
+    if (!description.trim()) return;
+    onSave({
+      id: order?.id || generateId(),
+      description: description.trim(),
+      dueDate: dueDate || null,
+      status,
+      completionNote: (status === "completed" || status === "cancelled") ? completionNote.trim() || null : null,
+      sourceEncounterId: order?.sourceEncounterId || null,
+      createdAt: order?.createdAt || new Date().toISOString(),
+    });
+  };
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal" onClick={(e) => e.stopPropagation()}>
+        <h3>{order ? "Edit Order" : "New Order"}</h3>
+        <div className="form-group">
+          <label>Description</label>
+          <textarea
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="What needs to be done? How?"
+            rows={3}
+            autoFocus
+          />
+        </div>
+        <div className="form-row">
+          <div className="form-group">
+            <label>Due Date (optional)</label>
+            <input type="date" value={dueDate || ""} onChange={(e) => setDueDate(e.target.value)} />
+          </div>
+          <div className="form-group">
+            <label>Status</label>
+            <select value={status} onChange={(e) => setStatus(e.target.value)}>
+              {ORDER_STATUSES.map((s) => (
+                <option key={s} value={s}>{s}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+        {(status === "completed" || status === "cancelled") && (
+          <div className="form-group">
+            <label>{status === "completed" ? "Completion Note" : "Cancellation Reason"} (optional)</label>
+            <textarea
+              value={completionNote}
+              onChange={(e) => setCompletionNote(e.target.value)}
+              placeholder={status === "completed" ? "How was this resolved?" : "Why was this cancelled?"}
+              rows={2}
+            />
+          </div>
+        )}
+        <div className="form-actions">
+          <button className="btn-cancel" onClick={onClose}>Cancel</button>
+          <button className="btn-save" onClick={handleSave}>Save</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function QuickCaptureModal({ contacts, onSave, onClose }) {
+  const [selectedContactId, setSelectedContactId] = useState("");
+  const [narrative, setNarrative] = useState("");
+  const [contactSearch, setContactSearch] = useState("");
+  const [showDropdown, setShowDropdown] = useState(false);
+
+  const contactList = Object.values(contacts).sort((a, b) => a.name.localeCompare(b.name));
+  const filtered = contactSearch
+    ? contactList.filter((c) => c.name.toLowerCase().includes(contactSearch.toLowerCase()))
+    : contactList;
+
+  const selectedContact = selectedContactId ? contacts[selectedContactId] : null;
+
+  const handleSave = () => {
+    if (!selectedContactId || !narrative.trim()) return;
+    onSave(selectedContactId, {
+      id: generateId(),
+      date: new Date().toISOString().split("T")[0],
+      type: "Note",
+      narrative: narrative.trim(),
+      assessment: "",
+      plan: "",
+      followUpDate: null,
+      followUpResolved: false,
+      followUpComment: null,
+    });
+  };
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal quick-capture-modal" onClick={(e) => e.stopPropagation()}>
+        <h3>Quick Capture</h3>
+        <div className="form-group">
+          <label>Chart</label>
+          {selectedContact ? (
+            <div className="quick-capture-selected">
+              <span>{selectedContact.name}</span>
+              <span className="quick-capture-ctx">{selectedContact.context}</span>
+              <button className="quick-capture-change" onClick={() => { setSelectedContactId(""); setContactSearch(""); }}>Change</button>
+            </div>
+          ) : (
+            <div className="quick-capture-picker">
+              <input
+                placeholder="Search charts..."
+                value={contactSearch}
+                onChange={(e) => { setContactSearch(e.target.value); setShowDropdown(true); }}
+                onFocus={() => setShowDropdown(true)}
+                autoFocus
+              />
+              {showDropdown && filtered.length > 0 && (
+                <div className="link-picker-results">
+                  {filtered.slice(0, 8).map((c) => (
+                    <div
+                      key={c.id}
+                      className="link-picker-item"
+                      onClick={() => {
+                        setSelectedContactId(c.id);
+                        setShowDropdown(false);
+                        setContactSearch("");
+                      }}
+                    >
+                      <span>{c.name}</span>
+                      <span className="link-picker-item-ctx">{c.context}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+        <div className="form-group">
+          <label>Note</label>
+          <textarea
+            value={narrative}
+            onChange={(e) => setNarrative(e.target.value)}
+            placeholder="Quick note — what happened?"
+            rows={3}
+            autoFocus={!!selectedContactId}
+          />
+        </div>
+        <div className="form-actions">
+          <button className="btn-cancel" onClick={onClose}>Cancel</button>
+          <button
+            className="btn-save"
+            onClick={handleSave}
+            disabled={!selectedContactId || !narrative.trim()}
+            style={{ opacity: (!selectedContactId || !narrative.trim()) ? 0.5 : 1 }}
+          >
+            Save Note
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function ConfirmModal({ message, onConfirm, onClose }) {
   return (
     <div className="modal-overlay" onClick={onClose}>
@@ -1148,6 +1677,10 @@ function ChartView({ contact, contacts, onUpdate, onUpdateOther, onBack, onDelet
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showDeleteEncounter, setShowDeleteEncounter] = useState(null);
   const [showResolveModal, setShowResolveModal] = useState(null);
+  const [showOrderModal, setShowOrderModal] = useState(false);
+  const [editingOrder, setEditingOrder] = useState(null);
+  const [showDeleteOrder, setShowDeleteOrder] = useState(null);
+  const [orderFromPlan, setOrderFromPlan] = useState(null);
 
   const sortedEncounters = [...(contact.encounters || [])].sort(
     (a, b) => new Date(b.date) - new Date(a.date)
@@ -1202,6 +1735,42 @@ function ChartView({ contact, contacts, onUpdate, onUpdateOther, onBack, onDelet
     const problems = contact.activeProblems.filter((p) => p.id !== probId);
     onUpdate({ ...contact, activeProblems: problems });
   };
+
+  // ─── Order handlers ───
+  const handleSaveOrder = (order) => {
+    const existing = contact.orders || [];
+    const idx = existing.findIndex((o) => o.id === order.id);
+    const updated = idx >= 0
+      ? existing.map((o) => (o.id === order.id ? order : o))
+      : [...existing, order];
+    onUpdate({ ...contact, orders: updated });
+    setShowOrderModal(false);
+    setEditingOrder(null);
+    setOrderFromPlan(null);
+  };
+
+  const handleDeleteOrder = (orderId) => {
+    const updated = (contact.orders || []).filter((o) => o.id !== orderId);
+    onUpdate({ ...contact, orders: updated });
+    setShowDeleteOrder(null);
+  };
+
+  const handleCycleOrderStatus = (orderId) => {
+    const cycle = { "open": "in-progress", "in-progress": "completed", "completed": "open", "cancelled": "open" };
+    const updated = (contact.orders || []).map((o) =>
+      o.id === orderId ? { ...o, status: cycle[o.status] || "open" } : o
+    );
+    onUpdate({ ...contact, orders: updated });
+  };
+
+  const handleCreateOrderFromPlan = (enc) => {
+    setOrderFromPlan({ description: enc.plan, sourceEncounterId: enc.id });
+    setEditingOrder(null);
+    setShowOrderModal(true);
+  };
+
+  const activeOrders = (contact.orders || []).filter((o) => o.status === "open" || o.status === "in-progress");
+  const completedOrders = (contact.orders || []).filter((o) => o.status === "completed" || o.status === "cancelled");
 
   const handleEditContact = (updated) => {
     onUpdate(updated);
@@ -1311,6 +1880,94 @@ function ChartView({ contact, contacts, onUpdate, onUpdateOther, onBack, onDelet
         )}
       </div>
 
+      {/* Orders */}
+      <div className="orders-section">
+        <div className="section-title">
+          <span>Orders ({activeOrders.length} active{completedOrders.length > 0 ? `, ${completedOrders.length} closed` : ""})</span>
+          <button className="btn-add-small" onClick={() => { setEditingOrder(null); setOrderFromPlan(null); setShowOrderModal(true); }}>+ Add</button>
+        </div>
+        {activeOrders.length === 0 && completedOrders.length === 0 ? (
+          <div style={{ fontSize: "13px", color: "var(--text-muted)", padding: "4px 0" }}>No orders</div>
+        ) : (
+          <>
+            {activeOrders
+              .sort((a, b) => {
+                // Overdue first, then by due date, then no date last
+                const aOv = isOrderOverdue(a);
+                const bOv = isOrderOverdue(b);
+                if (aOv && !bOv) return -1;
+                if (!aOv && bOv) return 1;
+                if (a.dueDate && b.dueDate) return new Date(a.dueDate) - new Date(b.dueDate);
+                if (a.dueDate && !b.dueDate) return -1;
+                if (!a.dueDate && b.dueDate) return 1;
+                return 0;
+              })
+              .map((order) => {
+                const overdue = isOrderOverdue(order);
+                const sourceEnc = order.sourceEncounterId
+                  ? (contact.encounters || []).find((e) => e.id === order.sourceEncounterId)
+                  : null;
+                return (
+                  <div className="order-item" key={order.id}>
+                    <span
+                      className={`order-status-badge ${order.status}`}
+                      onClick={() => handleCycleOrderStatus(order.id)}
+                      title="Click to advance status"
+                    >
+                      {order.status}
+                    </span>
+                    <div className="order-content">
+                      <div className="order-description">{order.description}</div>
+                      <div className="order-meta">
+                        {order.dueDate && (
+                          <span className={overdue ? "overdue" : ""}>
+                            {overdue
+                              ? `${daysOverdue(order.dueDate)}d overdue`
+                              : `Due ${formatDate(order.dueDate)}`}
+                          </span>
+                        )}
+                        {sourceEnc && (
+                          <span className="source-link" onClick={() => {/* could scroll to encounter */}}>
+                            from {formatDate(sourceEnc.date)} {sourceEnc.type.toLowerCase()}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="order-actions">
+                      <button className="btn-order-action" onClick={() => { setEditingOrder(order); setOrderFromPlan(null); setShowOrderModal(true); }}>Edit</button>
+                      <button className="btn-order-action danger" onClick={() => setShowDeleteOrder(order.id)}>Del</button>
+                    </div>
+                  </div>
+                );
+              })}
+            {completedOrders.length > 0 && (
+              <details style={{ marginTop: 8 }}>
+                <summary style={{ fontSize: "12px", color: "var(--text-muted)", cursor: "pointer", padding: "4px 0" }}>
+                  {completedOrders.length} closed order{completedOrders.length !== 1 ? "s" : ""}
+                </summary>
+                {completedOrders
+                  .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0))
+                  .map((order) => (
+                    <div className="order-item" key={order.id}>
+                      <span className={`order-status-badge ${order.status}`}>{order.status}</span>
+                      <div className="order-content">
+                        <div className="order-description done">{order.description}</div>
+                        {order.completionNote && (
+                          <div className="order-completion-note">{order.completionNote}</div>
+                        )}
+                      </div>
+                      <div className="order-actions">
+                        <button className="btn-order-action" onClick={() => { setEditingOrder(order); setOrderFromPlan(null); setShowOrderModal(true); }}>Edit</button>
+                        <button className="btn-order-action danger" onClick={() => setShowDeleteOrder(order.id)}>Del</button>
+                      </div>
+                    </div>
+                  ))}
+              </details>
+            )}
+          </>
+        )}
+      </div>
+
       {/* Encounters */}
       <div className="encounters-section">
         <div className="section-title" style={{ padding: "0 4px", marginBottom: 16 }}>
@@ -1344,6 +2001,12 @@ function ChartView({ contact, contacts, onUpdate, onUpdateOther, onBack, onDelet
                   <div className="encounter-field">
                     <div className="encounter-field-label">Plan</div>
                     <div className="encounter-field-value">{enc.plan}</div>
+                    <button
+                      className="order-from-plan"
+                      onClick={() => handleCreateOrderFromPlan(enc)}
+                    >
+                      + Order from this
+                    </button>
                   </div>
                 )}
                 {enc.followUpDate && (
@@ -1417,6 +2080,20 @@ function ChartView({ contact, contacts, onUpdate, onUpdateOther, onBack, onDelet
           onClose={() => setShowDeleteEncounter(null)}
         />
       )}
+      {showOrderModal && (
+        <OrderModal
+          order={editingOrder || (orderFromPlan ? { description: orderFromPlan.description, sourceEncounterId: orderFromPlan.sourceEncounterId } : null)}
+          onSave={handleSaveOrder}
+          onClose={() => { setShowOrderModal(false); setEditingOrder(null); setOrderFromPlan(null); }}
+        />
+      )}
+      {showDeleteOrder && (
+        <ConfirmModal
+          message="Delete this order? This cannot be undone."
+          onConfirm={() => handleDeleteOrder(showDeleteOrder)}
+          onClose={() => setShowDeleteOrder(null)}
+        />
+      )}
     </div>
   );
 }
@@ -1429,6 +2106,8 @@ export default function App() {
   const [search, setSearch] = useState("");
   const [filterContext, setFilterContext] = useState(null);
   const [showContactModal, setShowContactModal] = useState(false);
+  const [showQuickCapture, setShowQuickCapture] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -1513,6 +2192,26 @@ export default function App() {
     setActiveContactId(null);
   };
 
+  const handleQuickCapture = (contactId, encounter) => {
+    const contact = contacts[contactId];
+    if (!contact) return;
+    const updatedContact = {
+      ...contact,
+      encounters: [...(contact.encounters || []), encounter],
+    };
+    const updated = { ...contacts, [contactId]: updatedContact };
+    updateContacts(updated);
+    setShowQuickCapture(false);
+    setActiveContactId(contactId);
+    setSidebarOpen(false);
+  };
+
+  // Mobile: close sidebar when selecting a chart
+  const handleSelectContact = (id) => {
+    setActiveContactId(id);
+    setSidebarOpen(false);
+  };
+
   const contactList = Object.values(contacts)
     .filter((c) => {
       if (filterContext && c.context !== filterContext) return false;
@@ -1520,8 +2219,8 @@ export default function App() {
       return true;
     })
     .sort((a, b) => {
-      const aOverdue = isOverdue(a);
-      const bOverdue = isOverdue(b);
+      const aOverdue = isOverdue(a) || contactHasOverdueOrders(a);
+      const bOverdue = isOverdue(b) || contactHasOverdueOrders(b);
       if (aOverdue && !bOverdue) return -1;
       if (!aOverdue && bOverdue) return 1;
       return a.name.localeCompare(b.name);
@@ -1531,6 +2230,9 @@ export default function App() {
   const upcomingFollowUps = getUpcomingFollowUps(contacts, 7);
   const totalEncounters = Object.values(contacts).reduce((sum, c) => sum + (c.encounters?.length || 0), 0);
   const usedContexts = [...new Set(Object.values(contacts).map((c) => c.context))];
+  const overdueOrders = getOverdueOrders(contacts);
+  const upcomingOrders = getUpcomingOrders(contacts, 7);
+  const totalActiveOrders = Object.values(contacts).reduce((sum, c) => sum + getActiveOrderCount(c), 0);
 
   if (loading) return <div className="loading">Loading chart data...</div>;
 
@@ -1540,7 +2242,19 @@ export default function App() {
     <>
       <style>{styles}</style>
       <div className="app">
-        <div className="sidebar">
+        {/* Mobile header — visible only on small screens */}
+        <div className="mobile-header">
+          <button className="btn-mobile-menu" onClick={() => setSidebarOpen(true)}>
+            Charts
+          </button>
+          <h1>Insight</h1>
+          <div className="subtitle">Innoventually</div>
+        </div>
+
+        {/* Sidebar overlay for mobile */}
+        {sidebarOpen && <div className="sidebar-overlay" onClick={() => setSidebarOpen(false)} />}
+
+        <div className={`sidebar ${sidebarOpen ? "" : "hidden"}`}>
           <div className="sidebar-header">
             <h1>Insight</h1>
             <div className="subtitle">Innoventually</div>
@@ -1578,20 +2292,22 @@ export default function App() {
               </div>
             ) : (
               contactList.map((c) => {
-                const overdue = isOverdue(c);
+                const overdue = isOverdue(c) || contactHasOverdueOrders(c);
                 const nextFU = getNextFollowUp(c);
-                const hasPending = nextFU && !overdue;
+                const hasPending = (nextFU && !isOverdue(c)) && !contactHasOverdueOrders(c);
+                const activeOrdCount = getActiveOrderCount(c);
                 return (
                   <div
                     key={c.id}
                     className={`contact-item ${activeContactId === c.id ? "active" : ""}`}
-                    onClick={() => setActiveContactId(c.id)}
+                    onClick={() => handleSelectContact(c.id)}
                   >
                     <div className={overdue ? "overdue-dot" : hasPending ? "upcoming-dot" : "clear-dot"} />
                     <div className="contact-item-info">
                       <div className="contact-item-name">{c.name}</div>
                       <div className="contact-item-meta">
                         {c.context} · {c.encounters?.length || 0} enc.
+                        {activeOrdCount > 0 && ` · ${activeOrdCount} ord.`}
                         {overdue && " · overdue"}
                       </div>
                     </div>
@@ -1614,9 +2330,9 @@ export default function App() {
               contacts={contacts}
               onUpdate={handleUpdateContact}
               onUpdateOther={handleUpdateOtherContact}
-              onBack={() => setActiveContactId(null)}
+              onBack={() => { setActiveContactId(null); setSidebarOpen(true); }}
               onDelete={handleDeleteContact}
-              onNavigate={(id) => setActiveContactId(id)}
+              onNavigate={(id) => handleSelectContact(id)}
             />
           ) : (
             <div className="dashboard">
@@ -1624,14 +2340,18 @@ export default function App() {
               <div className="dashboard-subtitle">
                 {new Date().toLocaleDateString("en-CA", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
               </div>
-              <div className="dashboard-stats">
+              <div className="dashboard-stats" style={{ gridTemplateColumns: "repeat(4, 1fr)" }}>
                 <div className="stat-card">
                   <div className="stat-label">Charts</div>
                   <div className="stat-value">{Object.keys(contacts).length}</div>
                 </div>
-                <div className="stat-card overdue">
+                <div className={`stat-card ${overdueContacts.length + overdueOrders.length > 0 ? "overdue" : ""}`}>
                   <div className="stat-label">Overdue</div>
-                  <div className="stat-value">{overdueContacts.length}</div>
+                  <div className="stat-value">{overdueContacts.length + overdueOrders.length}</div>
+                </div>
+                <div className="stat-card">
+                  <div className="stat-label">Active Orders</div>
+                  <div className="stat-value">{totalActiveOrders}</div>
                 </div>
                 <div className="stat-card">
                   <div className="stat-label">Encounters</div>
@@ -1645,7 +2365,7 @@ export default function App() {
                   {overdueContacts.map((c) => {
                     const fu = getNextFollowUp(c);
                     return (
-                      <div key={c.id} className="overdue-item" onClick={() => setActiveContactId(c.id)}>
+                      <div key={c.id} className="overdue-item" onClick={() => handleSelectContact(c.id)}>
                         <div className="overdue-item-header">
                           <span className="overdue-item-name">{c.name}</span>
                           <span className="overdue-item-days">{daysOverdue(fu.followUpDate)}d overdue</span>
@@ -1664,12 +2384,46 @@ export default function App() {
                     const days = daysUntil(enc.followUpDate);
                     const label = days === 0 ? "today" : days === 1 ? "tomorrow" : `in ${days}d`;
                     return (
-                      <div key={enc.id} className="upcoming-item" onClick={() => setActiveContactId(c.id)}>
+                      <div key={enc.id} className="upcoming-item" onClick={() => handleSelectContact(c.id)}>
                         <div className="upcoming-item-header">
                           <span className="upcoming-item-name">{c.name}</span>
                           <span className="upcoming-item-days">{formatDate(enc.followUpDate)} ({label})</span>
                         </div>
                         {enc.plan && <div className="upcoming-item-plan">{enc.plan}</div>}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {overdueOrders.length > 0 && (
+                <div className="overdue-section">
+                  <h3>Overdue Orders</h3>
+                  {overdueOrders.map(({ contact: c, order }) => (
+                    <div key={order.id} className="overdue-item" onClick={() => handleSelectContact(c.id)}>
+                      <div className="overdue-item-header">
+                        <span className="overdue-item-name">{c.name}</span>
+                        <span className="overdue-item-days">{daysOverdue(order.dueDate)}d overdue</span>
+                      </div>
+                      <div className="overdue-item-plan">{order.description}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {upcomingOrders.length > 0 && (
+                <div className="upcoming-section">
+                  <h3>Orders Due Soon</h3>
+                  {upcomingOrders.map(({ contact: c, order }) => {
+                    const days = daysUntil(order.dueDate);
+                    const label = days === 0 ? "today" : days === 1 ? "tomorrow" : `in ${days}d`;
+                    return (
+                      <div key={order.id} className="upcoming-item" onClick={() => handleSelectContact(c.id)}>
+                        <div className="upcoming-item-header">
+                          <span className="upcoming-item-name">{c.name}</span>
+                          <span className="upcoming-item-days">{formatDate(order.dueDate)} ({label})</span>
+                        </div>
+                        <div className="upcoming-item-plan">{order.description}</div>
                       </div>
                     );
                   })}
@@ -1688,8 +2442,22 @@ export default function App() {
         </div>
       </div>
 
+      {/* Quick Capture FAB */}
+      {Object.keys(contacts).length > 0 && (
+        <button className="btn-quick-capture" onClick={() => setShowQuickCapture(true)} title="Quick capture">
+          +
+        </button>
+      )}
+
       {showContactModal && (
         <ContactModal onSave={handleSaveContact} onClose={() => setShowContactModal(false)} />
+      )}
+      {showQuickCapture && (
+        <QuickCaptureModal
+          contacts={contacts}
+          onSave={handleQuickCapture}
+          onClose={() => setShowQuickCapture(false)}
+        />
       )}
     </>
   );
