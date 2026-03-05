@@ -866,6 +866,224 @@ const styles = `
 
   .order-from-plan:hover { border-color: var(--accent); color: var(--accent); }
 
+  /* ─── Quick Capture ─── */
+  .quick-capture-modal { width: 440px; }
+
+  .quick-capture-selected {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 9px 12px;
+    background: var(--bg-primary);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: 13.5px;
+  }
+
+  .quick-capture-ctx {
+    font-size: 11px;
+    color: var(--text-muted);
+  }
+
+  .quick-capture-change {
+    margin-left: auto;
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-family: 'Inter', sans-serif;
+  }
+
+  .quick-capture-change:hover { border-color: var(--accent); color: var(--accent); }
+
+  .quick-capture-picker { position: relative; }
+
+  .btn-quick-capture {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: white;
+    border: none;
+    font-size: 22px;
+    cursor: pointer;
+    box-shadow: 0 4px 16px rgba(217, 119, 87, 0.35);
+    z-index: 50;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.15s, transform 0.15s;
+    line-height: 1;
+  }
+
+  .btn-quick-capture:hover { background: var(--accent-hover); transform: scale(1.05); }
+
+  /* ─── Mobile / Responsive ─── */
+  @media (max-width: 768px) {
+    .app {
+      flex-direction: column;
+    }
+
+    .sidebar {
+      width: 100%;
+      min-width: 100%;
+      height: 100vh;
+      position: fixed;
+      top: 0;
+      left: 0;
+      z-index: 20;
+      transition: transform 0.25s ease;
+    }
+
+    .sidebar.hidden {
+      transform: translateX(-100%);
+    }
+
+    .main {
+      width: 100%;
+      min-height: 100vh;
+    }
+
+    .dashboard {
+      padding: 24px 16px;
+    }
+
+    .dashboard-stats {
+      grid-template-columns: repeat(2, 1fr) !important;
+      gap: 10px;
+    }
+
+    .stat-card {
+      padding: 14px 16px;
+    }
+
+    .stat-card .stat-value {
+      font-size: 22px;
+    }
+
+    .chart {
+      padding: 16px;
+    }
+
+    .chart-header {
+      padding: 18px 16px;
+    }
+
+    .chart-name {
+      font-size: 19px;
+    }
+
+    .chart-actions {
+      flex-wrap: wrap;
+    }
+
+    .problems-section,
+    .orders-section,
+    .related-section {
+      padding: 16px;
+    }
+
+    .encounter-card {
+      padding: 16px;
+    }
+
+    .encounter-actions {
+      opacity: 1;
+    }
+
+    .btn-encounter-action {
+      opacity: 1;
+    }
+
+    .order-actions {
+      opacity: 1;
+    }
+
+    .problem-remove {
+      opacity: 1;
+    }
+
+    .modal {
+      width: 95vw;
+      max-width: 95vw;
+      padding: 20px;
+      max-height: 90vh;
+    }
+
+    .quick-capture-modal {
+      width: 95vw;
+    }
+
+    .form-row {
+      grid-template-columns: 1fr;
+    }
+
+    .overdue-item,
+    .upcoming-item {
+      padding: 12px 14px;
+    }
+
+    .btn-quick-capture {
+      bottom: 20px;
+      right: 20px;
+    }
+
+    .mobile-header {
+      display: flex;
+      align-items: center;
+      padding: 12px 16px;
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border);
+      gap: 12px;
+    }
+
+    .mobile-header h1 {
+      font-family: 'Charis SIL', serif;
+      font-size: 18px;
+      font-weight: 700;
+      flex: 1;
+    }
+
+    .mobile-header .subtitle {
+      font-size: 10px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      font-style: italic;
+    }
+
+    .btn-mobile-menu {
+      padding: 6px 12px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--text-secondary);
+      font-family: 'Inter', sans-serif;
+      font-size: 13px;
+      cursor: pointer;
+    }
+
+    .btn-mobile-menu:hover { border-color: var(--accent); color: var(--accent); }
+
+    .sidebar-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.3);
+      z-index: 15;
+    }
+  }
+
+  @media (min-width: 769px) {
+    .mobile-header { display: none; }
+    .sidebar-overlay { display: none; }
+  }
+
   /* ─── Forms / Modals ─── */
   .modal-overlay {
     position: fixed;
@@ -1245,6 +1463,102 @@ function OrderModal({ order, onSave, onClose }) {
         <div className="form-actions">
           <button className="btn-cancel" onClick={onClose}>Cancel</button>
           <button className="btn-save" onClick={handleSave}>Save</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function QuickCaptureModal({ contacts, onSave, onClose }) {
+  const [selectedContactId, setSelectedContactId] = useState("");
+  const [narrative, setNarrative] = useState("");
+  const [contactSearch, setContactSearch] = useState("");
+  const [showDropdown, setShowDropdown] = useState(false);
+
+  const contactList = Object.values(contacts).sort((a, b) => a.name.localeCompare(b.name));
+  const filtered = contactSearch
+    ? contactList.filter((c) => c.name.toLowerCase().includes(contactSearch.toLowerCase()))
+    : contactList;
+
+  const selectedContact = selectedContactId ? contacts[selectedContactId] : null;
+
+  const handleSave = () => {
+    if (!selectedContactId || !narrative.trim()) return;
+    onSave(selectedContactId, {
+      id: generateId(),
+      date: new Date().toISOString().split("T")[0],
+      type: "Note",
+      narrative: narrative.trim(),
+      assessment: "",
+      plan: "",
+      followUpDate: null,
+      followUpResolved: false,
+      followUpComment: null,
+    });
+  };
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal quick-capture-modal" onClick={(e) => e.stopPropagation()}>
+        <h3>Quick Capture</h3>
+        <div className="form-group">
+          <label>Chart</label>
+          {selectedContact ? (
+            <div className="quick-capture-selected">
+              <span>{selectedContact.name}</span>
+              <span className="quick-capture-ctx">{selectedContact.context}</span>
+              <button className="quick-capture-change" onClick={() => { setSelectedContactId(""); setContactSearch(""); }}>Change</button>
+            </div>
+          ) : (
+            <div className="quick-capture-picker">
+              <input
+                placeholder="Search charts..."
+                value={contactSearch}
+                onChange={(e) => { setContactSearch(e.target.value); setShowDropdown(true); }}
+                onFocus={() => setShowDropdown(true)}
+                autoFocus
+              />
+              {showDropdown && filtered.length > 0 && (
+                <div className="link-picker-results">
+                  {filtered.slice(0, 8).map((c) => (
+                    <div
+                      key={c.id}
+                      className="link-picker-item"
+                      onClick={() => {
+                        setSelectedContactId(c.id);
+                        setShowDropdown(false);
+                        setContactSearch("");
+                      }}
+                    >
+                      <span>{c.name}</span>
+                      <span className="link-picker-item-ctx">{c.context}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+        <div className="form-group">
+          <label>Note</label>
+          <textarea
+            value={narrative}
+            onChange={(e) => setNarrative(e.target.value)}
+            placeholder="Quick note — what happened?"
+            rows={3}
+            autoFocus={!!selectedContactId}
+          />
+        </div>
+        <div className="form-actions">
+          <button className="btn-cancel" onClick={onClose}>Cancel</button>
+          <button
+            className="btn-save"
+            onClick={handleSave}
+            disabled={!selectedContactId || !narrative.trim()}
+            style={{ opacity: (!selectedContactId || !narrative.trim()) ? 0.5 : 1 }}
+          >
+            Save Note
+          </button>
         </div>
       </div>
     </div>
@@ -1782,6 +2096,8 @@ export default function App() {
   const [search, setSearch] = useState("");
   const [filterContext, setFilterContext] = useState(null);
   const [showContactModal, setShowContactModal] = useState(false);
+  const [showQuickCapture, setShowQuickCapture] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -1866,6 +2182,26 @@ export default function App() {
     setActiveContactId(null);
   };
 
+  const handleQuickCapture = (contactId, encounter) => {
+    const contact = contacts[contactId];
+    if (!contact) return;
+    const updatedContact = {
+      ...contact,
+      encounters: [...(contact.encounters || []), encounter],
+    };
+    const updated = { ...contacts, [contactId]: updatedContact };
+    updateContacts(updated);
+    setShowQuickCapture(false);
+    setActiveContactId(contactId);
+    setSidebarOpen(false);
+  };
+
+  // Mobile: close sidebar when selecting a chart
+  const handleSelectContact = (id) => {
+    setActiveContactId(id);
+    setSidebarOpen(false);
+  };
+
   const contactList = Object.values(contacts)
     .filter((c) => {
       if (filterContext && c.context !== filterContext) return false;
@@ -1896,7 +2232,19 @@ export default function App() {
     <>
       <style>{styles}</style>
       <div className="app">
-        <div className="sidebar">
+        {/* Mobile header — visible only on small screens */}
+        <div className="mobile-header">
+          <button className="btn-mobile-menu" onClick={() => setSidebarOpen(true)}>
+            Charts
+          </button>
+          <h1>Insight</h1>
+          <div className="subtitle">Innoventually</div>
+        </div>
+
+        {/* Sidebar overlay for mobile */}
+        {sidebarOpen && <div className="sidebar-overlay" onClick={() => setSidebarOpen(false)} />}
+
+        <div className={`sidebar ${sidebarOpen ? "" : "hidden"}`}>
           <div className="sidebar-header">
             <h1>Insight</h1>
             <div className="subtitle">Innoventually</div>
@@ -1942,7 +2290,7 @@ export default function App() {
                   <div
                     key={c.id}
                     className={`contact-item ${activeContactId === c.id ? "active" : ""}`}
-                    onClick={() => setActiveContactId(c.id)}
+                    onClick={() => handleSelectContact(c.id)}
                   >
                     <div className={overdue ? "overdue-dot" : hasPending ? "upcoming-dot" : "clear-dot"} />
                     <div className="contact-item-info">
@@ -1972,9 +2320,9 @@ export default function App() {
               contacts={contacts}
               onUpdate={handleUpdateContact}
               onUpdateOther={handleUpdateOtherContact}
-              onBack={() => setActiveContactId(null)}
+              onBack={() => { setActiveContactId(null); setSidebarOpen(true); }}
               onDelete={handleDeleteContact}
-              onNavigate={(id) => setActiveContactId(id)}
+              onNavigate={(id) => handleSelectContact(id)}
             />
           ) : (
             <div className="dashboard">
@@ -2007,7 +2355,7 @@ export default function App() {
                   {overdueContacts.map((c) => {
                     const fu = getNextFollowUp(c);
                     return (
-                      <div key={c.id} className="overdue-item" onClick={() => setActiveContactId(c.id)}>
+                      <div key={c.id} className="overdue-item" onClick={() => handleSelectContact(c.id)}>
                         <div className="overdue-item-header">
                           <span className="overdue-item-name">{c.name}</span>
                           <span className="overdue-item-days">{daysOverdue(fu.followUpDate)}d overdue</span>
@@ -2026,7 +2374,7 @@ export default function App() {
                     const days = daysUntil(enc.followUpDate);
                     const label = days === 0 ? "today" : days === 1 ? "tomorrow" : `in ${days}d`;
                     return (
-                      <div key={enc.id} className="upcoming-item" onClick={() => setActiveContactId(c.id)}>
+                      <div key={enc.id} className="upcoming-item" onClick={() => handleSelectContact(c.id)}>
                         <div className="upcoming-item-header">
                           <span className="upcoming-item-name">{c.name}</span>
                           <span className="upcoming-item-days">{formatDate(enc.followUpDate)} ({label})</span>
@@ -2042,7 +2390,7 @@ export default function App() {
                 <div className="overdue-section">
                   <h3>Overdue Orders</h3>
                   {overdueOrders.map(({ contact: c, order }) => (
-                    <div key={order.id} className="overdue-item" onClick={() => setActiveContactId(c.id)}>
+                    <div key={order.id} className="overdue-item" onClick={() => handleSelectContact(c.id)}>
                       <div className="overdue-item-header">
                         <span className="overdue-item-name">{c.name}</span>
                         <span className="overdue-item-days">{daysOverdue(order.dueDate)}d overdue</span>
@@ -2060,7 +2408,7 @@ export default function App() {
                     const days = daysUntil(order.dueDate);
                     const label = days === 0 ? "today" : days === 1 ? "tomorrow" : `in ${days}d`;
                     return (
-                      <div key={order.id} className="upcoming-item" onClick={() => setActiveContactId(c.id)}>
+                      <div key={order.id} className="upcoming-item" onClick={() => handleSelectContact(c.id)}>
                         <div className="upcoming-item-header">
                           <span className="upcoming-item-name">{c.name}</span>
                           <span className="upcoming-item-days">{formatDate(order.dueDate)} ({label})</span>
@@ -2084,8 +2432,22 @@ export default function App() {
         </div>
       </div>
 
+      {/* Quick Capture FAB */}
+      {Object.keys(contacts).length > 0 && (
+        <button className="btn-quick-capture" onClick={() => setShowQuickCapture(true)} title="Quick capture">
+          +
+        </button>
+      )}
+
       {showContactModal && (
         <ContactModal onSave={handleSaveContact} onClose={() => setShowContactModal(false)} />
+      )}
+      {showQuickCapture && (
+        <QuickCaptureModal
+          contacts={contacts}
+          onSave={handleQuickCapture}
+          onClose={() => setShowQuickCapture(false)}
+        />
       )}
     </>
   );
