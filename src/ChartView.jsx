@@ -2,6 +2,7 @@ import { useState } from "react";
 import { generateId, formatDate, isOverdue, isOrderOverdue, daysOverdue } from "./utils";
 import { EncounterModal, ResolveModal, ProblemModal, OrderModal, ContactModal, ConfirmModal } from "./Modals";
 import RelatedChartsPicker from "./RelatedCharts";
+import ExportModal from "./ExportModal";
 
 export default function ChartView({ contact, contacts, onUpdate, onUpdateOther, onBack, onDelete, onNavigate }) {
   const [showEncounterModal, setShowEncounterModal] = useState(false);
@@ -15,6 +16,7 @@ export default function ChartView({ contact, contacts, onUpdate, onUpdateOther, 
   const [editingOrder, setEditingOrder] = useState(null);
   const [showDeleteOrder, setShowDeleteOrder] = useState(null);
   const [orderFromPlan, setOrderFromPlan] = useState(null);
+  const [showExport, setShowExport] = useState(false);
 
   const sortedEncounters = [...(contact.encounters || [])].sort(
     (a, b) => new Date(b.date) - new Date(a.date)
@@ -165,6 +167,7 @@ export default function ChartView({ contact, contacts, onUpdate, onUpdateOther, 
             + New Encounter
           </button>
           <button className="btn-chart-action" onClick={() => setShowEditContact(true)}>Edit</button>
+          <button className="btn-chart-action" onClick={() => setShowExport(true)}>Export</button>
           <button className="btn-chart-action danger" onClick={() => setShowDeleteConfirm(true)}>Delete</button>
         </div>
       </div>
@@ -420,6 +423,12 @@ export default function ChartView({ contact, contacts, onUpdate, onUpdateOther, 
           message="Delete this order? This cannot be undone."
           onConfirm={() => handleDeleteOrder(showDeleteOrder)}
           onClose={() => setShowDeleteOrder(null)}
+        />
+      )}
+      {showExport && (
+        <ExportModal
+          chartData={[contact]}
+          onClose={() => setShowExport(false)}
         />
       )}
     </div>

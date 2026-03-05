@@ -1,9 +1,12 @@
+import { useState } from "react";
 import {
   formatDate, isOverdue, getNextFollowUp, daysOverdue, daysUntil,
   getUpcomingFollowUps, getOverdueOrders, getUpcomingOrders, getActiveOrderCount
 } from "./utils";
+import ExportModal from "./ExportModal";
 
 export default function Dashboard({ contacts, onSelectContact }) {
+  const [showExport, setShowExport] = useState(false);
   const overdueContacts = Object.values(contacts).filter(isOverdue);
   const upcomingFollowUps = getUpcomingFollowUps(contacts, 7);
   const totalEncounters = Object.values(contacts).reduce((sum, c) => sum + (c.encounters?.length || 0), 0);
@@ -13,7 +16,14 @@ export default function Dashboard({ contacts, onSelectContact }) {
 
   return (
     <div className="dashboard">
-      <h2>Dashboard</h2>
+      <div className="dashboard-header-row">
+        <h2>Dashboard</h2>
+        {Object.keys(contacts).length > 0 && (
+          <button className="btn-chart-action" onClick={() => setShowExport(true)}>
+            Export Digest
+          </button>
+        )}
+      </div>
       <div className="dashboard-subtitle">
         {new Date().toLocaleDateString("en-CA", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
       </div>
@@ -113,6 +123,14 @@ export default function Dashboard({ contacts, onSelectContact }) {
           <h3>No charts yet</h3>
           <p>Create your first chart to start documenting your relationships and encounters.</p>
         </div>
+      )}
+
+      {showExport && (
+        <ExportModal
+          chartData={Object.values(contacts)}
+          onClose={() => setShowExport(false)}
+          isMulti
+        />
       )}
     </div>
   );

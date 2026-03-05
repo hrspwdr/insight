@@ -1304,5 +1304,211 @@ const styles = `
       padding: 16px;
     }
   }
+
+  /* ─── Dashboard Header ─── */
+  .dashboard-header-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+  }
+
+  .dashboard-header-row h2 {
+    margin-bottom: 0;
+  }
+
+  /* ─── Export Modal ─── */
+  .export-modal {
+    width: 560px;
+  }
+
+  .export-presets {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 20px;
+  }
+
+  .export-preset-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 10px 14px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--bg-primary);
+    cursor: pointer;
+    transition: all 0.15s;
+    text-align: left;
+    font-family: 'Inter', sans-serif;
+  }
+
+  .export-preset-btn:hover {
+    border-color: var(--accent);
+  }
+
+  .export-preset-btn.active {
+    border-color: var(--accent);
+    background: var(--accent-light);
+  }
+
+  .export-preset-label {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-primary);
+  }
+
+  .export-preset-desc {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 2px;
+  }
+
+  .export-preset-btn.active .export-preset-label {
+    color: var(--accent);
+  }
+
+  .export-format-row,
+  .export-config-section {
+    margin-bottom: 16px;
+  }
+
+  .export-row-label {
+    display: block;
+    font-size: 11.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-muted);
+    font-weight: 500;
+    margin-bottom: 6px;
+  }
+
+  .export-format-toggle {
+    display: flex;
+    gap: 0;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+
+  .export-format-btn {
+    flex: 1;
+    padding: 7px 12px;
+    border: none;
+    background: var(--bg-primary);
+    color: var(--text-secondary);
+    font-family: 'Inter', sans-serif;
+    font-size: 12.5px;
+    cursor: pointer;
+    transition: all 0.15s;
+    border-right: 1px solid var(--border);
+  }
+
+  .export-format-btn:last-child {
+    border-right: none;
+  }
+
+  .export-format-btn.active {
+    background: var(--accent);
+    color: white;
+  }
+
+  .export-format-btn:hover:not(.active) {
+    background: var(--accent-light);
+    color: var(--accent);
+  }
+
+  .export-date-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .export-date-row input[type="date"] {
+    flex: 1;
+    padding: 7px 10px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    color: var(--text-primary);
+    background: var(--bg-primary);
+    outline: none;
+    transition: border-color 0.15s;
+  }
+
+  .export-date-row input[type="date"]:focus {
+    border-color: var(--accent);
+  }
+
+  .export-date-sep {
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+
+  .export-checkboxes {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 16px;
+  }
+
+  .export-checkbox {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    padding: 3px 0;
+  }
+
+  .export-checkbox input[type="checkbox"] {
+    width: 15px;
+    height: 15px;
+    accent-color: var(--accent);
+    cursor: pointer;
+  }
+
+  .export-hint {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 4px;
+    font-style: italic;
+  }
+
+  .export-preview {
+    padding: 10px 14px;
+    background: var(--bg-secondary);
+    border-radius: 6px;
+    font-size: 12.5px;
+    color: var(--text-secondary);
+    margin-bottom: 8px;
+    text-align: center;
+  }
+
+  @media (max-width: 768px) {
+    .export-modal {
+      width: 95vw;
+    }
+
+    .export-presets {
+      grid-template-columns: 1fr;
+    }
+
+    .export-date-row {
+      flex-direction: column;
+      align-items: stretch;
+    }
+
+    .export-date-sep {
+      text-align: center;
+    }
+
+    .dashboard-header-row {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 8px;
+    }
+  }
 `;
 export default styles;
