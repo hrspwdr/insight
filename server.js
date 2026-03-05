@@ -140,9 +140,13 @@ function migrateFromJson() {
   );
 
   const migrate = db.transaction(() => {
+    // Pass 1: insert all contacts first (so FK references resolve)
     for (const [id, c] of Object.entries(raw)) {
       insertContact.run(id, c.name || "", c.context || "", c.notes || "", c.createdAt || new Date().toISOString());
+    }
 
+    // Pass 2: insert child data now that all contacts exist
+    for (const [id, c] of Object.entries(raw)) {
       for (const enc of c.encounters || []) {
         insertEncounter.run(
           enc.id, id, enc.date || "", enc.type || "", enc.narrative || "",
@@ -161,7 +165,6 @@ function migrateFromJson() {
 
       for (const prob of c.activeProblems || []) {
         if (typeof prob === "string") {
-          // Legacy format: plain string
           insertProblem.run(`prob_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`, id, prob, new Date().toISOString());
         } else {
           insertProblem.run(prob.id, id, prob.text || "", prob.addedAt || new Date().toISOString());
@@ -169,7 +172,8 @@ function migrateFromJson() {
       }
 
       for (const relId of c.relatedCharts || []) {
-        insertRelated.run(id, relId);
+        // Only link if the target contact exists in the data
+        if (raw[relId]) insertRelated.run(id, relId);
       }
     }
   });
@@ -288,9 +292,13 @@ function putAllData(data) {
     deleteEncounters.run();
     deleteContacts.run();
 
+    // Pass 1: insert all contacts first (so FK references resolve)
     for (const [id, c] of Object.entries(data)) {
       insertContact.run(id, c.name || "", c.context || "", c.notes || "", c.createdAt || new Date().toISOString());
+    }
 
+    // Pass 2: insert child data now that all contacts exist
+    for (const [id, c] of Object.entries(data)) {
       for (const enc of c.encounters || []) {
         insertEncounter.run(
           enc.id, id, enc.date || "", enc.type || "", enc.narrative || "",
@@ -316,7 +324,8 @@ function putAllData(data) {
       }
 
       for (const relId of c.relatedCharts || []) {
-        insertRelated.run(id, relId);
+        // Only link if the target contact exists in the data
+        if (data[relId]) insertRelated.run(id, relId);
       }
     }
   });
