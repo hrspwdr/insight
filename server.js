@@ -114,7 +114,7 @@ db.exec(`
 try { db.exec("ALTER TABLE encounters ADD COLUMN tags TEXT NOT NULL DEFAULT '[]'"); } catch { /* column already exists */ }
 try { db.exec("ALTER TABLE orders ADD COLUMN tags TEXT NOT NULL DEFAULT '[]'"); } catch { /* column already exists */ }
 
-// ─── FTS rebuild ───
+// ─── FTS rebuild (full) ───
 
 function rebuildSearchIndex() {
   db.prepare("DELETE FROM search_index").run();
@@ -158,6 +158,56 @@ function rebuildSearchIndex() {
   });
 
   rebuild();
+}
+
+// ─── FTS targeted updates (single entity) ───
+
+const ftsDelete = db.prepare("DELETE FROM search_index WHERE entityType = ? AND entityId = ?");
+const ftsInsert = db.prepare(
+  "INSERT INTO search_index (entityType, entityId, contactId, contactName, content) VALUES (?, ?, ?, ?, ?)"
+);
+
+function updateContactIndex(contactId) {
+  const c = db.prepare("SELECT * FROM contacts WHERE id = ?").get(contactId);
+  ftsDelete.run("contact", contactId);
+  if (c) {
+    const text = [c.name, c.context, c.notes].filter(Boolean).join(" ");
+    if (text.trim()) ftsInsert.run("contact", c.id, c.id, c.name, text);
+  }
+}
+
+function updateEncounterIndex(encounterId) {
+  const e = db.prepare("SELECT e.*, c.name as contactName FROM encounters e JOIN contacts c ON e.contactId = c.id WHERE e.id = ?").get(encounterId);
+  ftsDelete.run("encounter", encounterId);
+  if (e) {
+    let tags = [];
+    try { tags = JSON.parse(e.tags || "[]"); } catch { /* ignore */ }
+    const text = [e.narrative, e.assessment, e.plan, e.followUpComment, ...tags].filter(Boolean).join(" ");
+    if (text.trim()) ftsInsert.run("encounter", e.id, e.contactId, e.contactName, text);
+  }
+}
+
+function updateOrderIndex(orderId) {
+  const o = db.prepare("SELECT o.*, c.name as contactName FROM orders o JOIN contacts c ON o.contactId = c.id WHERE o.id = ?").get(orderId);
+  ftsDelete.run("order", orderId);
+  if (o) {
+    let tags = [];
+    try { tags = JSON.parse(o.tags || "[]"); } catch { /* ignore */ }
+    const text = [o.description, o.completionNote, ...tags].filter(Boolean).join(" ");
+    if (text.trim()) ftsInsert.run("order", o.id, o.contactId, o.contactName, text);
+  }
+}
+
+function updateProblemIndex(problemId) {
+  const p = db.prepare("SELECT p.*, c.name as contactName FROM active_problems p JOIN contacts c ON p.contactId = c.id WHERE p.id = ?").get(problemId);
+  ftsDelete.run("problem", problemId);
+  if (p && p.text.trim()) {
+    ftsInsert.run("problem", p.id, p.contactId, p.contactName, p.text);
+  }
+}
+
+function removeFromIndex(entityType, entityId) {
+  ftsDelete.run(entityType, entityId);
 }
 
 // ─── JSON → SQLite migration ───
@@ -677,6 +727,294 @@ fastify.get("/api/tags", { preHandler: authRequired }, async (request, reply) =>
   } catch (err) {
     fastify.log.error(err);
     return [];
+  }
+});
+
+// ─── Granular mutation endpoints ───
+
+// -- Contacts --
+
+fastify.post("/api/contacts", { preHandler: authRequired }, async (request, reply) => {
+  try {
+    const { id, name, context, notes, createdAt } = request.body;
+    db.prepare(
+      "INSERT INTO contacts (id, name, context, notes, createdAt) VALUES (?, ?, ?, ?, ?)"
+    ).run(id, name || "", context || "", notes || "", createdAt || new Date().toISOString());
+    updateContactIndex(id);
+    return { ok: true, id };
+  } catch (err) {
+    fastify.log.error(err);
+    reply.status(500);
+    return { ok: false, error: err.message };
+  }
+});
+
+fastify.patch("/api/contacts/:id", { preHandler: authRequired }, async (request, reply) => {
+  try {
+    const { id } = request.params;
+    const { name, context, notes } = request.body;
+    const existing = db.prepare("SELECT * FROM contacts WHERE id = ?").get(id);
+    if (!existing) { reply.status(404); return { ok: false, error: "Contact not found" }; }
+    db.prepare(
+      "UPDATE contacts SET name = ?, context = ?, notes = ? WHERE id = ?"
+    ).run(
+      name !== undefined ? name : existing.name,
+      context !== undefined ? context : existing.context,
+      notes !== undefined ? notes : existing.notes,
+      id
+    );
+    updateContactIndex(id);
+    return { ok: true };
+  } catch (err) {
+    fastify.log.error(err);
+    reply.status(500);
+    return { ok: false, error: err.message };
+  }
+});
+
+fastify.delete("/api/contacts/:id", { preHandler: authRequired }, async (request, reply) => {
+  try {
+    const { id } = request.params;
+    // Collect child IDs for FTS cleanup before CASCADE deletes them
+    const encIds = db.prepare("SELECT id FROM encounters WHERE contactId = ?").all(id).map(r => r.id);
+    const ordIds = db.prepare("SELECT id FROM orders WHERE contactId = ?").all(id).map(r => r.id);
+    const probIds = db.prepare("SELECT id FROM active_problems WHERE contactId = ?").all(id).map(r => r.id);
+
+    db.prepare("DELETE FROM contacts WHERE id = ?").run(id);
+
+    // Clean up FTS entries
+    removeFromIndex("contact", id);
+    for (const eid of encIds) removeFromIndex("encounter", eid);
+    for (const oid of ordIds) removeFromIndex("order", oid);
+    for (const pid of probIds) removeFromIndex("problem", pid);
+
+    // Clean up bidirectional related chart links pointing TO this contact
+    db.prepare("DELETE FROM related_charts WHERE relatedContactId = ?").run(id);
+
+    return { ok: true };
+  } catch (err) {
+    fastify.log.error(err);
+    reply.status(500);
+    return { ok: false, error: err.message };
+  }
+});
+
+// -- Encounters --
+
+fastify.post("/api/contacts/:contactId/encounters", { preHandler: authRequired }, async (request, reply) => {
+  try {
+    const { contactId } = request.params;
+    const enc = request.body;
+    db.prepare(
+      `INSERT INTO encounters (id, contactId, date, type, narrative, assessment, plan, followUpDate, followUpResolved, followUpComment, tags)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    ).run(
+      enc.id, contactId, enc.date || "", enc.type || "", enc.narrative || "",
+      enc.assessment || "", enc.plan || "", enc.followUpDate || null,
+      enc.followUpResolved ? 1 : 0, enc.followUpComment || null,
+      JSON.stringify(enc.tags || [])
+    );
+    updateEncounterIndex(enc.id);
+    return { ok: true, id: enc.id };
+  } catch (err) {
+    fastify.log.error(err);
+    reply.status(500);
+    return { ok: false, error: err.message };
+  }
+});
+
+fastify.patch("/api/encounters/:id", { preHandler: authRequired }, async (request, reply) => {
+  try {
+    const { id } = request.params;
+    const enc = request.body;
+    const existing = db.prepare("SELECT * FROM encounters WHERE id = ?").get(id);
+    if (!existing) { reply.status(404); return { ok: false, error: "Encounter not found" }; }
+    db.prepare(
+      `UPDATE encounters SET date = ?, type = ?, narrative = ?, assessment = ?, plan = ?,
+       followUpDate = ?, followUpResolved = ?, followUpComment = ?, tags = ?
+       WHERE id = ?`
+    ).run(
+      enc.date !== undefined ? enc.date : existing.date,
+      enc.type !== undefined ? enc.type : existing.type,
+      enc.narrative !== undefined ? enc.narrative : existing.narrative,
+      enc.assessment !== undefined ? enc.assessment : existing.assessment,
+      enc.plan !== undefined ? enc.plan : existing.plan,
+      enc.followUpDate !== undefined ? enc.followUpDate : existing.followUpDate,
+      enc.followUpResolved !== undefined ? (enc.followUpResolved ? 1 : 0) : existing.followUpResolved,
+      enc.followUpComment !== undefined ? enc.followUpComment : existing.followUpComment,
+      enc.tags !== undefined ? JSON.stringify(enc.tags) : existing.tags,
+      id
+    );
+    updateEncounterIndex(id);
+    return { ok: true };
+  } catch (err) {
+    fastify.log.error(err);
+    reply.status(500);
+    return { ok: false, error: err.message };
+  }
+});
+
+fastify.delete("/api/encounters/:id", { preHandler: authRequired }, async (request, reply) => {
+  try {
+    const { id } = request.params;
+    db.prepare("DELETE FROM encounters WHERE id = ?").run(id);
+    removeFromIndex("encounter", id);
+    return { ok: true };
+  } catch (err) {
+    fastify.log.error(err);
+    reply.status(500);
+    return { ok: false, error: err.message };
+  }
+});
+
+// -- Orders --
+
+fastify.post("/api/contacts/:contactId/orders", { preHandler: authRequired }, async (request, reply) => {
+  try {
+    const { contactId } = request.params;
+    const ord = request.body;
+    db.prepare(
+      `INSERT INTO orders (id, contactId, description, dueDate, status, completionNote, sourceEncounterId, createdAt, tags)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    ).run(
+      ord.id, contactId, ord.description || "", ord.dueDate || null,
+      ord.status || "open", ord.completionNote || null,
+      ord.sourceEncounterId || null, ord.createdAt || new Date().toISOString(),
+      JSON.stringify(ord.tags || [])
+    );
+    updateOrderIndex(ord.id);
+    return { ok: true, id: ord.id };
+  } catch (err) {
+    fastify.log.error(err);
+    reply.status(500);
+    return { ok: false, error: err.message };
+  }
+});
+
+fastify.patch("/api/orders/:id", { preHandler: authRequired }, async (request, reply) => {
+  try {
+    const { id } = request.params;
+    const ord = request.body;
+    const existing = db.prepare("SELECT * FROM orders WHERE id = ?").get(id);
+    if (!existing) { reply.status(404); return { ok: false, error: "Order not found" }; }
+    db.prepare(
+      `UPDATE orders SET description = ?, dueDate = ?, status = ?, completionNote = ?,
+       sourceEncounterId = ?, tags = ?
+       WHERE id = ?`
+    ).run(
+      ord.description !== undefined ? ord.description : existing.description,
+      ord.dueDate !== undefined ? ord.dueDate : existing.dueDate,
+      ord.status !== undefined ? ord.status : existing.status,
+      ord.completionNote !== undefined ? ord.completionNote : existing.completionNote,
+      ord.sourceEncounterId !== undefined ? ord.sourceEncounterId : existing.sourceEncounterId,
+      ord.tags !== undefined ? JSON.stringify(ord.tags) : existing.tags,
+      id
+    );
+    updateOrderIndex(id);
+    return { ok: true };
+  } catch (err) {
+    fastify.log.error(err);
+    reply.status(500);
+    return { ok: false, error: err.message };
+  }
+});
+
+fastify.delete("/api/orders/:id", { preHandler: authRequired }, async (request, reply) => {
+  try {
+    const { id } = request.params;
+    db.prepare("DELETE FROM orders WHERE id = ?").run(id);
+    removeFromIndex("order", id);
+    return { ok: true };
+  } catch (err) {
+    fastify.log.error(err);
+    reply.status(500);
+    return { ok: false, error: err.message };
+  }
+});
+
+// -- Active Problems --
+
+fastify.post("/api/contacts/:contactId/problems", { preHandler: authRequired }, async (request, reply) => {
+  try {
+    const { contactId } = request.params;
+    const prob = request.body;
+    db.prepare(
+      "INSERT INTO active_problems (id, contactId, text, addedAt) VALUES (?, ?, ?, ?)"
+    ).run(prob.id, contactId, prob.text || "", prob.addedAt || new Date().toISOString());
+    updateProblemIndex(prob.id);
+    return { ok: true, id: prob.id };
+  } catch (err) {
+    fastify.log.error(err);
+    reply.status(500);
+    return { ok: false, error: err.message };
+  }
+});
+
+fastify.patch("/api/problems/:id", { preHandler: authRequired }, async (request, reply) => {
+  try {
+    const { id } = request.params;
+    const prob = request.body;
+    const existing = db.prepare("SELECT * FROM active_problems WHERE id = ?").get(id);
+    if (!existing) { reply.status(404); return { ok: false, error: "Problem not found" }; }
+    db.prepare(
+      "UPDATE active_problems SET text = ? WHERE id = ?"
+    ).run(
+      prob.text !== undefined ? prob.text : existing.text,
+      id
+    );
+    updateProblemIndex(id);
+    return { ok: true };
+  } catch (err) {
+    fastify.log.error(err);
+    reply.status(500);
+    return { ok: false, error: err.message };
+  }
+});
+
+fastify.delete("/api/problems/:id", { preHandler: authRequired }, async (request, reply) => {
+  try {
+    const { id } = request.params;
+    db.prepare("DELETE FROM active_problems WHERE id = ?").run(id);
+    removeFromIndex("problem", id);
+    return { ok: true };
+  } catch (err) {
+    fastify.log.error(err);
+    reply.status(500);
+    return { ok: false, error: err.message };
+  }
+});
+
+// -- Related Charts (bidirectional) --
+
+fastify.post("/api/contacts/:contactId/related/:targetId", { preHandler: authRequired }, async (request, reply) => {
+  try {
+    const { contactId, targetId } = request.params;
+    const link = db.transaction(() => {
+      db.prepare("INSERT OR IGNORE INTO related_charts (contactId, relatedContactId) VALUES (?, ?)").run(contactId, targetId);
+      db.prepare("INSERT OR IGNORE INTO related_charts (contactId, relatedContactId) VALUES (?, ?)").run(targetId, contactId);
+    });
+    link();
+    return { ok: true };
+  } catch (err) {
+    fastify.log.error(err);
+    reply.status(500);
+    return { ok: false, error: err.message };
+  }
+});
+
+fastify.delete("/api/contacts/:contactId/related/:targetId", { preHandler: authRequired }, async (request, reply) => {
+  try {
+    const { contactId, targetId } = request.params;
+    const unlink = db.transaction(() => {
+      db.prepare("DELETE FROM related_charts WHERE contactId = ? AND relatedContactId = ?").run(contactId, targetId);
+      db.prepare("DELETE FROM related_charts WHERE contactId = ? AND relatedContactId = ?").run(targetId, contactId);
+    });
+    unlink();
+    return { ok: true };
+  } catch (err) {
+    fastify.log.error(err);
+    reply.status(500);
+    return { ok: false, error: err.message };
   }
 });
 

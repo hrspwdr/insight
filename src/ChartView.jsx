@@ -4,7 +4,16 @@ import { EncounterModal, ResolveModal, ProblemModal, OrderModal, ContactModal, C
 import RelatedChartsPicker from "./RelatedCharts";
 import ExportModal from "./ExportModal";
 
-export default function ChartView({ contact, contacts, onUpdate, onUpdateOther, onBack, onDelete, onNavigate, allTags = [] }) {
+export default function ChartView({
+  contact, contacts,
+  // Granular callbacks from App.jsx
+  onEditContact, onSaveEncounter, onDeleteEncounter, onResolveFollowUp, onUnresolveFollowUp,
+  onSaveOrder, onDeleteOrder, onCycleOrderStatus,
+  onAddProblem, onToggleProblem, onRemoveProblem,
+  onLinkChart, onUnlinkChart,
+  onBack, onDelete, onNavigate,
+  allTags = [],
+}) {
   const [showEncounterModal, setShowEncounterModal] = useState(false);
   const [editingEncounter, setEditingEncounter] = useState(null);
   const [showProblemModal, setShowProblemModal] = useState(false);
@@ -22,81 +31,39 @@ export default function ChartView({ contact, contacts, onUpdate, onUpdateOther, 
     (a, b) => new Date(b.date) - new Date(a.date)
   );
 
+  // ─── Thin handlers (manage modal state, delegate to parent) ───
+
   const handleSaveEncounter = (enc) => {
-    const existing = contact.encounters || [];
-    const idx = existing.findIndex((e) => e.id === enc.id);
-    const updated = idx >= 0
-      ? existing.map((e) => (e.id === enc.id ? enc : e))
-      : [...existing, enc];
-    onUpdate({ ...contact, encounters: updated });
+    onSaveEncounter(enc);
     setShowEncounterModal(false);
     setEditingEncounter(null);
   };
 
   const handleDeleteEncounter = (encId) => {
-    const updated = contact.encounters.filter((e) => e.id !== encId);
-    onUpdate({ ...contact, encounters: updated });
+    onDeleteEncounter(encId);
     setShowDeleteEncounter(null);
   };
 
   const handleResolveFollowUp = (encId, comment) => {
-    const updated = contact.encounters.map((e) =>
-      e.id === encId ? { ...e, followUpResolved: true, followUpComment: comment } : e
-    );
-    onUpdate({ ...contact, encounters: updated });
+    onResolveFollowUp(encId, comment);
     setShowResolveModal(null);
   };
 
-  const handleUnresolveFollowUp = (encId) => {
-    const updated = contact.encounters.map((e) =>
-      e.id === encId ? { ...e, followUpResolved: false, followUpComment: null } : e
-    );
-    onUpdate({ ...contact, encounters: updated });
-  };
-
   const handleAddProblem = (text) => {
-    const problems = [...(contact.activeProblems || []), { id: generateId(), text, status: "active" }];
-    onUpdate({ ...contact, activeProblems: problems });
+    onAddProblem({ id: generateId(), text, status: "active", addedAt: new Date().toISOString() });
     setShowProblemModal(false);
   };
 
-  const handleToggleProblem = (probId) => {
-    const problems = contact.activeProblems.map((p) =>
-      p.id === probId ? { ...p, status: p.status === "active" ? "resolved" : "active" } : p
-    );
-    onUpdate({ ...contact, activeProblems: problems });
-  };
-
-  const handleRemoveProblem = (probId) => {
-    const problems = contact.activeProblems.filter((p) => p.id !== probId);
-    onUpdate({ ...contact, activeProblems: problems });
-  };
-
-  // ─── Order handlers ───
   const handleSaveOrder = (order) => {
-    const existing = contact.orders || [];
-    const idx = existing.findIndex((o) => o.id === order.id);
-    const updated = idx >= 0
-      ? existing.map((o) => (o.id === order.id ? order : o))
-      : [...existing, order];
-    onUpdate({ ...contact, orders: updated });
+    onSaveOrder(order);
     setShowOrderModal(false);
     setEditingOrder(null);
     setOrderFromPlan(null);
   };
 
   const handleDeleteOrder = (orderId) => {
-    const updated = (contact.orders || []).filter((o) => o.id !== orderId);
-    onUpdate({ ...contact, orders: updated });
+    onDeleteOrder(orderId);
     setShowDeleteOrder(null);
-  };
-
-  const handleCycleOrderStatus = (orderId) => {
-    const cycle = { "open": "in-progress", "in-progress": "completed", "completed": "open", "cancelled": "open" };
-    const updated = (contact.orders || []).map((o) =>
-      o.id === orderId ? { ...o, status: cycle[o.status] || "open" } : o
-    );
-    onUpdate({ ...contact, orders: updated });
   };
 
   const handleCreateOrderFromPlan = (enc) => {
@@ -105,40 +72,13 @@ export default function ChartView({ contact, contacts, onUpdate, onUpdateOther, 
     setShowOrderModal(true);
   };
 
-  const activeOrders = (contact.orders || []).filter((o) => o.status === "open" || o.status === "in-progress");
-  const completedOrders = (contact.orders || []).filter((o) => o.status === "completed" || o.status === "cancelled");
-
-  const handleEditContact = (updated) => {
-    onUpdate(updated);
+  const handleEditContactSave = (updated) => {
+    onEditContact(updated);
     setShowEditContact(false);
   };
 
-  // Bidirectional linking
-  const handleLinkChart = (targetId) => {
-    const currentRelated = [...(contact.relatedCharts || [])];
-    if (!currentRelated.includes(targetId)) {
-      currentRelated.push(targetId);
-      onUpdate({ ...contact, relatedCharts: currentRelated });
-    }
-    const target = contacts[targetId];
-    if (target) {
-      const targetRelated = [...(target.relatedCharts || [])];
-      if (!targetRelated.includes(contact.id)) {
-        targetRelated.push(contact.id);
-        onUpdateOther({ ...target, relatedCharts: targetRelated });
-      }
-    }
-  };
-
-  const handleUnlinkChart = (targetId) => {
-    const currentRelated = (contact.relatedCharts || []).filter((id) => id !== targetId);
-    onUpdate({ ...contact, relatedCharts: currentRelated });
-    const target = contacts[targetId];
-    if (target) {
-      const targetRelated = (target.relatedCharts || []).filter((id) => id !== contact.id);
-      onUpdateOther({ ...target, relatedCharts: targetRelated });
-    }
-  };
+  const activeOrders = (contact.orders || []).filter((o) => o.status === "open" || o.status === "in-progress");
+  const completedOrders = (contact.orders || []).filter((o) => o.status === "completed" || o.status === "cancelled");
 
   return (
     <div className="chart">
@@ -181,10 +121,10 @@ export default function ChartView({ contact, contacts, onUpdate, onUpdateOther, 
           if ((contact.relatedCharts || []).includes(targetId)) {
             onNavigate(targetId);
           } else {
-            handleLinkChart(targetId);
+            onLinkChart(targetId);
           }
         }}
-        onUnlink={handleUnlinkChart}
+        onUnlink={onUnlinkChart}
       />
 
       {/* Active Problems */}
@@ -202,11 +142,11 @@ export default function ChartView({ contact, contacts, onUpdate, onUpdateOther, 
               <span className="problem-text">{p.text}</span>
               <span
                 className={`problem-status ${p.status}`}
-                onClick={() => handleToggleProblem(p.id)}
+                onClick={() => onToggleProblem(p.id)}
               >
                 {p.status}
               </span>
-              <button className="problem-remove" onClick={() => handleRemoveProblem(p.id)}>×</button>
+              <button className="problem-remove" onClick={() => onRemoveProblem(p.id)}>×</button>
             </div>
           ))
         )}
@@ -242,7 +182,7 @@ export default function ChartView({ contact, contacts, onUpdate, onUpdateOther, 
                   <div className="order-item" key={order.id}>
                     <span
                       className={`order-status-badge ${order.status}`}
-                      onClick={() => handleCycleOrderStatus(order.id)}
+                      onClick={() => onCycleOrderStatus(order.id)}
                       title="Click to advance status"
                     >
                       {order.status}
@@ -363,7 +303,7 @@ export default function ChartView({ contact, contacts, onUpdate, onUpdateOther, 
                           Resolve
                         </button>
                       ) : (
-                        <button className="btn-resolve" onClick={() => handleUnresolveFollowUp(enc.id)}>
+                        <button className="btn-resolve" onClick={() => onUnresolveFollowUp(enc.id)}>
                           Unresolve
                         </button>
                       )}
@@ -404,12 +344,12 @@ export default function ChartView({ contact, contacts, onUpdate, onUpdateOther, 
       )}
       {showProblemModal && <ProblemModal onSave={handleAddProblem} onClose={() => setShowProblemModal(false)} />}
       {showEditContact && (
-        <ContactModal contact={contact} onSave={handleEditContact} onClose={() => setShowEditContact(false)} />
+        <ContactModal contact={contact} onSave={handleEditContactSave} onClose={() => setShowEditContact(false)} />
       )}
       {showDeleteConfirm && (
         <ConfirmModal
           message={`Delete "${contact.name}" and all their encounters? This cannot be undone.`}
-          onConfirm={() => { onDelete(contact.id); setShowDeleteConfirm(false); }}
+          onConfirm={() => { onDelete(); setShowDeleteConfirm(false); }}
           onClose={() => setShowDeleteConfirm(false)}
         />
       )}
