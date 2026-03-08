@@ -2,7 +2,7 @@ const styles = `
   @import url('https://fonts.googleapis.com/css2?family=Charis+SIL:wght@400;700&family=Inter:wght@400;500;600&display=swap');
 
   :root {
-    --bg-primary: #000000;
+    --bg-primary: #faf9f5;
     --bg-secondary: #F5F4EF;
     --bg-card: #ffffff;
     --text-primary: #141413;
