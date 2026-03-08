@@ -1,6 +1,10 @@
 node_modules/
 dist/
 data/insight.json
+data/insight.db
+data/insight.db-shm
+data/insight.db-wal
 .env
 fly.toml
 .github/
+.DS_Store
