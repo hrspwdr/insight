@@ -17,7 +17,7 @@ jobs:
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            cd ~/insight
+            cd /home/deploy/insight
             git pull origin main
-            sudo docker compose up --build -d
-            sudo docker image prune -f
+            docker compose up --build -d
+            docker image prune -f
