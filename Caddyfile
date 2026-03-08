@@ -1,0 +1,3 @@
+server.patrick.quebec {
+    reverse_proxy insight:3001
+}
