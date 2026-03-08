@@ -8,7 +8,7 @@ const styles = `
     --text-primary: #141413;
     --text-secondary: #5c5c5a;
     --text-muted: #8c8c8a;
-    --accent: #D97757;
+    --accent: #f6f6f6;
     --accent-hover: #c4684a;
     --accent-light: #D9775715;
     --accent-medium: #D9775725;
