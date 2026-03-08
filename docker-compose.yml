@@ -8,7 +8,7 @@ services:
       - INSIGHT_PASSWORD_HASH=${INSIGHT_PASSWORD_HASH}
       - SESSION_SECRET=${SESSION_SECRET}
     volumes:
-      - insight_data:/app/data
+      - /mnt/HC_Volume_105041860/insight_data:/app/data
     expose:
       - "3001"
 
@@ -28,6 +28,5 @@ services:
       - insight
 
 volumes:
-  insight_data:
   caddy_data:
   caddy_config:
