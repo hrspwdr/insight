@@ -1046,14 +1046,15 @@ if (IS_PROD) {
 
 // ─── Graceful shutdown ───
 
-function shutdown() {
-  db.pragma("wal_checkpoint(TRUNCATE)");
+process.on("SIGTERM", () => {
   db.close();
   process.exit(0);
-}
+});
 
-process.on("SIGTERM", shutdown);
-process.on("SIGINT", shutdown);
+process.on("SIGINT", () => {
+  db.close();
+  process.exit(0);
+});
 
 // ─── Start ───
 
