@@ -427,7 +427,8 @@ export default function App() {
           <button className="btn-mobile-menu" onClick={() => setSidebarOpen(true)}>
             Charts
           </button>
-          <h1>Innoventually</h1>
+          <h1>Insight</h1>
+          <div className="subtitle">Innoventually</div>
         </div>
 
         {/* Sidebar overlay for mobile */}
