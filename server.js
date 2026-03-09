@@ -117,8 +117,31 @@ try { db.exec("ALTER TABLE active_problems ADD COLUMN status TEXT NOT NULL DEFAU
 
 // ─── FTS rebuild (full) ───
 
+function recreateFtsTable() {
+  try { db.exec("DROP TABLE IF EXISTS search_index"); } catch { /* ignore */ }
+  db.exec(`
+    CREATE VIRTUAL TABLE IF NOT EXISTS search_index USING fts5(
+      entityType,
+      entityId,
+      contactId,
+      contactName,
+      content,
+      content_rowid='rowid'
+    );
+  `);
+}
+
 function rebuildSearchIndex() {
-  db.prepare("DELETE FROM search_index").run();
+  try {
+    db.prepare("DELETE FROM search_index").run();
+  } catch (e) {
+    if (e.code === "SQLITE_CORRUPT_VTAB" || e.message?.includes("malformed")) {
+      console.warn("FTS index corrupt — dropping and recreating...");
+      recreateFtsTable();
+    } else {
+      throw e;
+    }
+  }
 
   const insertIdx = db.prepare(
     "INSERT INTO search_index (entityType, entityId, contactId, contactName, content) VALUES (?, ?, ?, ?, ?)"
@@ -163,52 +186,84 @@ function rebuildSearchIndex() {
 
 // ─── FTS targeted updates (single entity) ───
 
-const ftsDelete = db.prepare("DELETE FROM search_index WHERE entityType = ? AND entityId = ?");
-const ftsInsert = db.prepare(
+let ftsDelete = db.prepare("DELETE FROM search_index WHERE entityType = ? AND entityId = ?");
+let ftsInsert = db.prepare(
   "INSERT INTO search_index (entityType, entityId, contactId, contactName, content) VALUES (?, ?, ?, ?, ?)"
 );
 
-function updateContactIndex(contactId) {
-  const c = db.prepare("SELECT * FROM contacts WHERE id = ?").get(contactId);
-  ftsDelete.run("contact", contactId);
-  if (c) {
-    const text = [c.name, c.context, c.notes].filter(Boolean).join(" ");
-    if (text.trim()) ftsInsert.run("contact", c.id, c.id, c.name, text);
+function reprepareStatements() {
+  ftsDelete = db.prepare("DELETE FROM search_index WHERE entityType = ? AND entityId = ?");
+  ftsInsert = db.prepare(
+    "INSERT INTO search_index (entityType, entityId, contactId, contactName, content) VALUES (?, ?, ?, ?, ?)"
+  );
+}
+
+function safeFtsOp(fn) {
+  try {
+    fn();
+  } catch (e) {
+    if (e.code === "SQLITE_CORRUPT_VTAB" || e.message?.includes("malformed")) {
+      console.warn("FTS index corrupt during targeted update — full rebuild...");
+      recreateFtsTable();
+      reprepareStatements();
+      rebuildSearchIndex();
+    } else {
+      throw e;
+    }
   }
+}
+
+function updateContactIndex(contactId) {
+  safeFtsOp(() => {
+    const c = db.prepare("SELECT * FROM contacts WHERE id = ?").get(contactId);
+    ftsDelete.run("contact", contactId);
+    if (c) {
+      const text = [c.name, c.context, c.notes].filter(Boolean).join(" ");
+      if (text.trim()) ftsInsert.run("contact", c.id, c.id, c.name, text);
+    }
+  });
 }
 
 function updateEncounterIndex(encounterId) {
-  const e = db.prepare("SELECT e.*, c.name as contactName FROM encounters e JOIN contacts c ON e.contactId = c.id WHERE e.id = ?").get(encounterId);
-  ftsDelete.run("encounter", encounterId);
-  if (e) {
-    let tags = [];
-    try { tags = JSON.parse(e.tags || "[]"); } catch { /* ignore */ }
-    const text = [e.narrative, e.assessment, e.plan, e.followUpComment, ...tags].filter(Boolean).join(" ");
-    if (text.trim()) ftsInsert.run("encounter", e.id, e.contactId, e.contactName, text);
-  }
+  safeFtsOp(() => {
+    const e = db.prepare("SELECT e.*, c.name as contactName FROM encounters e JOIN contacts c ON e.contactId = c.id WHERE e.id = ?").get(encounterId);
+    ftsDelete.run("encounter", encounterId);
+    if (e) {
+      let tags = [];
+      try { tags = JSON.parse(e.tags || "[]"); } catch { /* ignore */ }
+      const text = [e.narrative, e.assessment, e.plan, e.followUpComment, ...tags].filter(Boolean).join(" ");
+      if (text.trim()) ftsInsert.run("encounter", e.id, e.contactId, e.contactName, text);
+    }
+  });
 }
 
 function updateOrderIndex(orderId) {
-  const o = db.prepare("SELECT o.*, c.name as contactName FROM orders o JOIN contacts c ON o.contactId = c.id WHERE o.id = ?").get(orderId);
-  ftsDelete.run("order", orderId);
-  if (o) {
-    let tags = [];
-    try { tags = JSON.parse(o.tags || "[]"); } catch { /* ignore */ }
-    const text = [o.description, o.completionNote, ...tags].filter(Boolean).join(" ");
-    if (text.trim()) ftsInsert.run("order", o.id, o.contactId, o.contactName, text);
-  }
+  safeFtsOp(() => {
+    const o = db.prepare("SELECT o.*, c.name as contactName FROM orders o JOIN contacts c ON o.contactId = c.id WHERE o.id = ?").get(orderId);
+    ftsDelete.run("order", orderId);
+    if (o) {
+      let tags = [];
+      try { tags = JSON.parse(o.tags || "[]"); } catch { /* ignore */ }
+      const text = [o.description, o.completionNote, ...tags].filter(Boolean).join(" ");
+      if (text.trim()) ftsInsert.run("order", o.id, o.contactId, o.contactName, text);
+    }
+  });
 }
 
 function updateProblemIndex(problemId) {
-  const p = db.prepare("SELECT p.*, c.name as contactName FROM active_problems p JOIN contacts c ON p.contactId = c.id WHERE p.id = ?").get(problemId);
-  ftsDelete.run("problem", problemId);
-  if (p && p.text.trim()) {
-    ftsInsert.run("problem", p.id, p.contactId, p.contactName, p.text);
-  }
+  safeFtsOp(() => {
+    const p = db.prepare("SELECT p.*, c.name as contactName FROM active_problems p JOIN contacts c ON p.contactId = c.id WHERE p.id = ?").get(problemId);
+    ftsDelete.run("problem", problemId);
+    if (p && p.text.trim()) {
+      ftsInsert.run("problem", p.id, p.contactId, p.contactName, p.text);
+    }
+  });
 }
 
 function removeFromIndex(entityType, entityId) {
-  ftsDelete.run(entityType, entityId);
+  safeFtsOp(() => {
+    ftsDelete.run(entityType, entityId);
+  });
 }
 
 // ─── JSON → SQLite migration ───
