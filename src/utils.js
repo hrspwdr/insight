@@ -1,6 +1,5 @@
 export const API_URL = "/api/data";
 
-export const CONTACT_CONTEXTS = ["MUHC/CCT", "Territorial", "Provincial", "Committee", "Community", "Personal"];
 export const ENCOUNTER_TYPES = ["Meeting", "Call", "Email", "Informal", "Presentation", "Note"];
 export const ORDER_STATUSES = ["open", "in-progress", "completed", "cancelled"];
 

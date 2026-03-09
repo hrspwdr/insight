@@ -1,18 +1,24 @@
-import { useState } from "react";
-import { CONTACT_CONTEXTS, ENCOUNTER_TYPES, ORDER_STATUSES, generateId } from "./utils";
+import { useState, useRef, useEffect } from "react";
+import { ENCOUNTER_TYPES, ORDER_STATUSES, generateId } from "./utils";
 import TagInput from "./TagInput";
 
-export function ContactModal({ contact, onSave, onClose }) {
+export function ContactModal({ contact, onSave, onClose, usedContexts = [] }) {
   const [name, setName] = useState(contact?.name || "");
-  const [context, setContext] = useState(contact?.context || CONTACT_CONTEXTS[0]);
+  const [context, setContext] = useState(contact?.context || "");
   const [notes, setNotes] = useState(contact?.notes || "");
+  const [showCtxSuggestions, setShowCtxSuggestions] = useState(false);
+  const ctxRef = useRef(null);
+
+  const ctxSuggestions = context.trim()
+    ? usedContexts.filter((c) => c.toLowerCase().includes(context.toLowerCase()) && c !== context)
+    : usedContexts.filter((c) => c !== context);
 
   const handleSave = () => {
     if (!name.trim()) return;
     onSave({
       id: contact?.id || generateId(),
       name: name.trim(),
-      context,
+      context: context.trim(),
       notes: notes.trim(),
       activeProblems: contact?.activeProblems || [],
       encounters: contact?.encounters || [],
@@ -20,6 +26,13 @@ export function ContactModal({ contact, onSave, onClose }) {
       createdAt: contact?.createdAt || new Date().toISOString(),
     });
   };
+
+  // Close suggestions on outside click
+  useEffect(() => {
+    const handler = () => setShowCtxSuggestions(false);
+    document.addEventListener("click", handler);
+    return () => document.removeEventListener("click", handler);
+  }, []);
 
   return (
     <div className="modal-overlay" onClick={onClose}>
@@ -29,11 +42,34 @@ export function ContactModal({ contact, onSave, onClose }) {
           <label>Name</label>
           <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Person or group name" autoFocus />
         </div>
-        <div className="form-group">
+        <div className="form-group" onClick={(e) => e.stopPropagation()}>
           <label>Context</label>
-          <select value={context} onChange={(e) => setContext(e.target.value)}>
-            {CONTACT_CONTEXTS.map((c) => <option key={c} value={c}>{c}</option>)}
-          </select>
+          <div style={{ position: "relative" }}>
+            <input
+              ref={ctxRef}
+              value={context}
+              onChange={(e) => { setContext(e.target.value); setShowCtxSuggestions(true); }}
+              onFocus={() => setShowCtxSuggestions(true)}
+              placeholder="e.g., MUHC/CCT, Provincial..."
+            />
+            {showCtxSuggestions && ctxSuggestions.length > 0 && (
+              <div className="tag-suggestions">
+                {ctxSuggestions.map((c) => (
+                  <div
+                    key={c}
+                    className="tag-suggestion-item"
+                    onMouseDown={(e) => {
+                      e.preventDefault();
+                      setContext(c);
+                      setShowCtxSuggestions(false);
+                    }}
+                  >
+                    {c}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
         <div className="form-group">
           <label>Background Notes</label>
@@ -259,6 +295,7 @@ export function QuickCaptureModal({ contacts, onSave, onClose }) {
       followUpDate: null,
       followUpResolved: false,
       followUpComment: null,
+      tags: [],
     });
   };
 

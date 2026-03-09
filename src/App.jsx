@@ -85,6 +85,13 @@ const api = {
     return res;
   },
 
+  // Contexts
+  renameContext: async (from, to) => {
+    const res = await fetch("/api/contexts/rename", { method: "PATCH", headers: jsonHeaders, body: JSON.stringify({ from, to }) });
+    handleAuthRedirect(res);
+    return res;
+  },
+
   // Related Charts
   linkCharts: async (contactId, targetId) => {
     const res = await fetch(`/api/contacts/${contactId}/related/${targetId}`, { method: "POST" });
@@ -113,6 +120,8 @@ export default function App() {
   const [showSearch, setShowSearch] = useState(false);
   const [allTags, setAllTags] = useState([]);
   const [filterTag, setFilterTag] = useState(null);
+  const [editingContext, setEditingContext] = useState(null);
+  const [editingContextValue, setEditingContextValue] = useState("");
 
   const refreshTags = useCallback(async () => {
     try {
@@ -320,10 +329,7 @@ export default function App() {
     const problem = (contact?.activeProblems || []).find((p) => p.id === probId);
     if (!problem) return;
     const newStatus = problem.status === "active" ? "resolved" : "active";
-    // Problems table doesn't have a status column — toggle is tracked client-side via the text or a convention
-    // Actually, looking at the schema, active_problems has text and addedAt only. The status is only in the frontend blob.
-    // For now, we'll update the local state. The problem row stays in the DB; toggling is a UI concern.
-    // We could add a status column, but let's keep this compatible — just delete resolved problems.
+    try { await api.updateProblem(probId, { status: newStatus }); } catch (e) { console.error("Failed to toggle problem:", e); }
     setContacts((prev) => {
       const c = prev[contactId];
       const problems = (c.activeProblems || []).map((p) =>
@@ -393,6 +399,22 @@ export default function App() {
     refreshTags();
   };
 
+  const handleRenameContext = async (from, to) => {
+    if (!to.trim() || from === to.trim()) { setEditingContext(null); return; }
+    try { await api.renameContext(from, to.trim()); } catch (e) { console.error("Failed to rename context:", e); }
+    setContacts((prev) => {
+      const updated = { ...prev };
+      for (const [id, c] of Object.entries(updated)) {
+        if (c.context === from) {
+          updated[id] = { ...c, context: to.trim() };
+        }
+      }
+      return updated;
+    });
+    if (filterContext === from) setFilterContext(to.trim());
+    setEditingContext(null);
+  };
+
   const handleSelectContact = (id) => {
     setActiveContactId(id);
     setSidebarOpen(false);
@@ -412,7 +434,7 @@ export default function App() {
       return a.name.localeCompare(b.name);
     });
 
-  const usedContexts = [...new Set(Object.values(contacts).map((c) => c.context))];
+  const usedContexts = [...new Set(Object.values(contacts).map((c) => c.context).filter(Boolean))];
 
   if (loading) return <div className="loading">Loading chart data...</div>;
 
@@ -455,13 +477,32 @@ export default function App() {
                 All
               </button>
               {usedContexts.map((ctx) => (
-                <button
-                  key={ctx}
-                  className={`filter-chip ${filterContext === ctx ? "active" : ""}`}
-                  onClick={() => setFilterContext(filterContext === ctx ? null : ctx)}
-                >
-                  {ctx}
-                </button>
+                editingContext === ctx ? (
+                  <form
+                    key={ctx}
+                    className="context-rename-form"
+                    onSubmit={(e) => { e.preventDefault(); handleRenameContext(ctx, editingContextValue); }}
+                  >
+                    <input
+                      className="context-rename-input"
+                      value={editingContextValue}
+                      onChange={(e) => setEditingContextValue(e.target.value)}
+                      onBlur={() => handleRenameContext(ctx, editingContextValue)}
+                      onKeyDown={(e) => { if (e.key === "Escape") setEditingContext(null); }}
+                      autoFocus
+                    />
+                  </form>
+                ) : (
+                  <button
+                    key={ctx}
+                    className={`filter-chip ${filterContext === ctx ? "active" : ""}`}
+                    onClick={() => setFilterContext(filterContext === ctx ? null : ctx)}
+                    onDoubleClick={() => { setEditingContext(ctx); setEditingContextValue(ctx); }}
+                    title="Double-click to rename"
+                  >
+                    {ctx}
+                  </button>
+                )
               ))}
             </div>
           )}
@@ -576,6 +617,7 @@ export default function App() {
               onDelete={() => handleDeleteContact(activeContactId)}
               onNavigate={(id) => handleSelectContact(id)}
               allTags={allTags}
+              usedContexts={usedContexts}
             />
           ) : (
             <Dashboard contacts={contacts} onSelectContact={handleSelectContact} allTags={allTags} />
@@ -591,7 +633,7 @@ export default function App() {
       )}
 
       {showContactModal && (
-        <ContactModal onSave={handleSaveContact} onClose={() => setShowContactModal(false)} />
+        <ContactModal onSave={handleSaveContact} onClose={() => setShowContactModal(false)} usedContexts={usedContexts} />
       )}
       {showQuickCapture && (
         <QuickCaptureModal

@@ -112,6 +112,24 @@ const styles = `
   }
 
   .filter-chip:hover { border-color: var(--accent); color: var(--accent); }
+
+  .context-rename-form {
+    display: inline-flex;
+  }
+
+  .context-rename-input {
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 500;
+    border: 1px solid var(--accent);
+    background: var(--bg-card);
+    color: var(--text-primary);
+    font-family: 'Inter', sans-serif;
+    outline: none;
+    width: 100px;
+  }
+
   .filter-chip.active {
     background: var(--accent);
     color: white;

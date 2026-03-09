@@ -13,6 +13,7 @@ export default function ChartView({
   onLinkChart, onUnlinkChart,
   onBack, onDelete, onNavigate,
   allTags = [],
+  usedContexts = [],
 }) {
   const [showEncounterModal, setShowEncounterModal] = useState(false);
   const [editingEncounter, setEditingEncounter] = useState(null);
@@ -252,7 +253,6 @@ export default function ChartView({
         ) : (
           sortedEncounters.map((enc) => {
             const overdue = enc.followUpDate && !enc.followUpResolved && new Date(enc.followUpDate) < new Date();
-            const pending = enc.followUpDate && !enc.followUpResolved && new Date(enc.followUpDate) >= new Date();
             return (
               <div className={`encounter-card ${overdue ? "has-overdue" : ""}`} key={enc.id}>
                 <div className="encounter-header">
@@ -344,7 +344,7 @@ export default function ChartView({
       )}
       {showProblemModal && <ProblemModal onSave={handleAddProblem} onClose={() => setShowProblemModal(false)} />}
       {showEditContact && (
-        <ContactModal contact={contact} onSave={handleEditContactSave} onClose={() => setShowEditContact(false)} />
+        <ContactModal contact={contact} onSave={handleEditContactSave} onClose={() => setShowEditContact(false)} usedContexts={usedContexts} />
       )}
       {showDeleteConfirm && (
         <ConfirmModal
