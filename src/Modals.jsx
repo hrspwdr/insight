@@ -1,6 +1,20 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { ENCOUNTER_TYPES, ORDER_STATUSES, generateId } from "./utils";
 import TagInput from "./TagInput";
+
+// Prevents modal close when user starts a text selection inside the modal
+// and accidentally releases the mouse outside it (on the overlay).
+function useOverlayClose(onClose) {
+  const mouseDownTarget = useRef(null);
+  const onMouseDown = useCallback((e) => { mouseDownTarget.current = e.target; }, []);
+  const onMouseUp = useCallback((e) => {
+    if (e.target === mouseDownTarget.current && e.target.classList.contains("modal-overlay")) {
+      onClose();
+    }
+    mouseDownTarget.current = null;
+  }, [onClose]);
+  return { onMouseDown, onMouseUp };
+}
 
 export function ContactModal({ contact, onSave, onClose, usedContexts = [] }) {
   const [name, setName] = useState(contact?.name || "");
@@ -34,9 +48,10 @@ export function ContactModal({ contact, onSave, onClose, usedContexts = [] }) {
     return () => document.removeEventListener("click", handler);
   }, []);
 
+  const overlay = useOverlayClose(onClose);
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
+    <div className="modal-overlay" onMouseDown={overlay.onMouseDown} onMouseUp={overlay.onMouseUp}>
+      <div className="modal">
         <h3>{contact ? "Edit Chart" : "New Chart"}</h3>
         <div className="form-group">
           <label>Name</label>
@@ -108,9 +123,10 @@ export function EncounterModal({ encounter, onSave, onClose, allTags = [] }) {
     });
   };
 
+  const overlay = useOverlayClose(onClose);
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
+    <div className="modal-overlay" onMouseDown={overlay.onMouseDown} onMouseUp={overlay.onMouseUp}>
+      <div className="modal">
         <h3>{encounter ? "Edit Encounter" : "New Encounter"}</h3>
         <div className="form-row">
           <div className="form-group">
@@ -155,9 +171,10 @@ export function EncounterModal({ encounter, onSave, onClose, allTags = [] }) {
 
 export function ResolveModal({ onResolve, onClose }) {
   const [comment, setComment] = useState("");
+  const overlay = useOverlayClose(onClose);
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
+    <div className="modal-overlay" onMouseDown={overlay.onMouseDown} onMouseUp={overlay.onMouseUp}>
+      <div className="modal">
         <h3>Resolve Follow-up</h3>
         <div className="form-group">
           <label>Resolution Comment (optional)</label>
@@ -180,9 +197,10 @@ export function ResolveModal({ onResolve, onClose }) {
 
 export function ProblemModal({ onSave, onClose }) {
   const [text, setText] = useState("");
+  const overlay = useOverlayClose(onClose);
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
+    <div className="modal-overlay" onMouseDown={overlay.onMouseDown} onMouseUp={overlay.onMouseUp}>
+      <div className="modal">
         <h3>Add Active Problem</h3>
         <div className="form-group">
           <label>Description</label>
@@ -218,9 +236,10 @@ export function OrderModal({ order, onSave, onClose, allTags = [] }) {
     });
   };
 
+  const overlay = useOverlayClose(onClose);
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
+    <div className="modal-overlay" onMouseDown={overlay.onMouseDown} onMouseUp={overlay.onMouseUp}>
+      <div className="modal">
         <h3>{order ? "Edit Order" : "New Order"}</h3>
         <div className="form-group">
           <label>Description</label>
@@ -299,9 +318,10 @@ export function QuickCaptureModal({ contacts, onSave, onClose }) {
     });
   };
 
+  const overlay = useOverlayClose(onClose);
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal quick-capture-modal" onClick={(e) => e.stopPropagation()}>
+    <div className="modal-overlay" onMouseDown={overlay.onMouseDown} onMouseUp={overlay.onMouseUp}>
+      <div className="modal quick-capture-modal">
         <h3>Quick Capture</h3>
         <div className="form-group">
           <label>Chart</label>
@@ -368,9 +388,10 @@ export function QuickCaptureModal({ contacts, onSave, onClose }) {
 }
 
 export function ConfirmModal({ message, onConfirm, onClose }) {
+  const overlay = useOverlayClose(onClose);
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
+    <div className="modal-overlay" onMouseDown={overlay.onMouseDown} onMouseUp={overlay.onMouseUp}>
+      <div className="modal">
         <p style={{ fontSize: "14px", lineHeight: 1.6 }}>{message}</p>
         <div className="confirm-actions">
           <button className="btn-cancel" onClick={onClose}>Cancel</button>

@@ -252,7 +252,7 @@ export default function ChartView({
           <div className="no-encounters">No encounters documented yet.</div>
         ) : (
           sortedEncounters.map((enc) => {
-            const overdue = enc.followUpDate && !enc.followUpResolved && new Date(enc.followUpDate) < new Date();
+            const overdue = enc.followUpDate && !enc.followUpResolved && daysOverdue(enc.followUpDate) > 0;
             return (
               <div className={`encounter-card ${overdue ? "has-overdue" : ""}`} key={enc.id}>
                 <div className="encounter-header">

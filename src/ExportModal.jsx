@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useCallback } from "react";
 import { ENCOUNTER_TYPES } from "./utils";
 import {
   getPresetConfig,
@@ -105,9 +105,16 @@ export default function ExportModal({ chartData, onClose, isMulti = false, allTa
     { key: "followUps", label: "Pending Follow-ups" },
   ];
 
+  const mouseDownTarget = useRef(null);
+  const handleOverlayMouseDown = useCallback((e) => { mouseDownTarget.current = e.target; }, []);
+  const handleOverlayMouseUp = useCallback((e) => {
+    if (e.target === mouseDownTarget.current && e.target.classList.contains("modal-overlay")) onClose();
+    mouseDownTarget.current = null;
+  }, [onClose]);
+
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal export-modal" onClick={(e) => e.stopPropagation()}>
+    <div className="modal-overlay" onMouseDown={handleOverlayMouseDown} onMouseUp={handleOverlayMouseUp}>
+      <div className="modal export-modal">
         <h3>{isMulti ? "Export Digest" : `Export — ${chartData[0]?.name}`}</h3>
 
         {/* Preset buttons */}

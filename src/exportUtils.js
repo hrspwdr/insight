@@ -148,7 +148,7 @@ function chartToMarkdown(contact, config) {
       pending
         .sort((a, b) => new Date(a.followUpDate) - new Date(b.followUpDate))
         .forEach((e) => {
-          const overdue = new Date(e.followUpDate) < new Date();
+          const overdue = daysOverdue(e.followUpDate) > 0;
           const label = overdue
             ? `**OVERDUE** (${formatDate(e.followUpDate)}, ${daysOverdue(e.followUpDate)}d ago)`
             : `${formatDate(e.followUpDate)} (${daysUntil(e.followUpDate)}d)`;
@@ -266,7 +266,7 @@ function chartToHtml(contact, config) {
       pending
         .sort((a, b) => new Date(a.followUpDate) - new Date(b.followUpDate))
         .forEach((e) => {
-          const overdue = new Date(e.followUpDate) < new Date();
+          const overdue = daysOverdue(e.followUpDate) > 0;
           const label = overdue
             ? `<span class="overdue">OVERDUE (${formatDate(e.followUpDate)})</span>`
             : `${formatDate(e.followUpDate)}`;
