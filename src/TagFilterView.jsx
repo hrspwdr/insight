@@ -1,6 +1,11 @@
+import { useState } from "react";
 import { formatDate, isOrderOverdue, daysOverdue } from "./utils";
 
+const isClosedOrder = (o) => o.status === "completed" || o.status === "cancelled";
+
 export default function TagFilterView({ tag, contacts, onSelectContact }) {
+  const [hideClosedOrders, setHideClosedOrders] = useState(false);
+
   // Gather all encounters and orders with this tag, grouped by contact
   const groups = [];
 
@@ -8,9 +13,12 @@ export default function TagFilterView({ tag, contacts, onSelectContact }) {
     const matchingEnc = (contact.encounters || []).filter(
       (e) => e.tags?.includes(tag)
     );
-    const matchingOrd = (contact.orders || []).filter(
+    const allMatchingOrd = (contact.orders || []).filter(
       (o) => o.tags?.includes(tag)
     );
+    const matchingOrd = hideClosedOrders
+      ? allMatchingOrd.filter((o) => !isClosedOrder(o))
+      : allMatchingOrd;
 
     if (matchingEnc.length > 0 || matchingOrd.length > 0) {
       groups.push({
@@ -35,6 +43,16 @@ export default function TagFilterView({ tag, contacts, onSelectContact }) {
             {totalEnc} encounter{totalEnc !== 1 ? "s" : ""}, {totalOrd} order{totalOrd !== 1 ? "s" : ""} across {groups.length} chart{groups.length !== 1 ? "s" : ""}
           </span>
         </h2>
+      </div>
+      <div style={{ marginBottom: 16 }}>
+        <label className="export-checkbox">
+          <input
+            type="checkbox"
+            checked={hideClosedOrders}
+            onChange={(e) => setHideClosedOrders(e.target.checked)}
+          />
+          Hide closed orders
+        </label>
       </div>
 
       {groups.length === 0 && (

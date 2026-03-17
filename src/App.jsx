@@ -620,7 +620,7 @@ export default function App() {
               usedContexts={usedContexts}
             />
           ) : (
-            <Dashboard contacts={contacts} onSelectContact={handleSelectContact} allTags={allTags} />
+            <Dashboard contacts={contacts} onSelectContact={handleSelectContact} allTags={allTags} usedContexts={usedContexts} />
           )}
         </div>
       </div>

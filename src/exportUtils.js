@@ -132,6 +132,7 @@ function chartToMarkdown(contact, config) {
           : "";
         const tagStr = o.tags?.length > 0 ? ` [${o.tags.join(", ")}]` : "";
         lines.push(`- [${o.status}] ${o.description}${dueStr}${tagStr}`);
+        if (o.progressNotes) lines.push(`  - _${o.progressNotes}_`);
         if (o.completionNote) lines.push(`  - _${o.completionNote}_`);
       });
     }
@@ -251,7 +252,10 @@ function chartToHtml(contact, config) {
             ? ` — <span class="overdue">${daysOverdue(o.dueDate)}d overdue</span>`
             : ` — due ${formatDate(o.dueDate)}`
           : "";
-        html += `<li><span class="status-badge ${o.status}">${o.status}</span> ${escHtml(o.description)}${dueStr}</li>`;
+        let noteHtml = "";
+        if (o.progressNotes) noteHtml += `<br><em>${escHtml(o.progressNotes)}</em>`;
+        if (o.completionNote) noteHtml += `<br><em>${escHtml(o.completionNote)}</em>`;
+        html += `<li><span class="status-badge ${o.status}">${o.status}</span> ${escHtml(o.description)}${dueStr}${noteHtml}</li>`;
       });
       html += `</ul>`;
     }
@@ -316,28 +320,28 @@ export function generatePrintHtml(chartData, config) {
 <meta charset="UTF-8">
 <title>${title}</title>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Charis+SIL:wght@400;700&family=Inter:wght@400;500;600&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&display=swap');
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { font-family: 'Inter', sans-serif; color: #141413; line-height: 1.6; padding: 40px; max-width: 800px; margin: 0 auto; }
-  h1 { font-family: 'Charis SIL', serif; font-size: 22px; margin-bottom: 4px; }
-  h2 { font-family: 'Charis SIL', serif; font-size: 18px; margin-bottom: 4px; color: #D97757; }
+  body { font-family: 'Public Sans', sans-serif; color: #252627; line-height: 1.6; padding: 40px; max-width: 800px; margin: 0 auto; }
+  h1 { font-family: 'Public Sans', sans-serif; font-size: 22px; margin-bottom: 4px; font-weight: 700; }
+  h2 { font-family: 'Public Sans', sans-serif; font-size: 18px; margin-bottom: 4px; color: #0a81d1; font-weight: 700; }
   h3 { font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; color: #8c8c8a; margin: 16px 0 8px; font-weight: 600; }
   .subtitle { font-size: 12px; color: #8c8c8a; margin-bottom: 24px; }
   .meta { font-size: 13px; color: #5c5c5a; margin-bottom: 8px; }
-  .background { font-size: 13px; color: #5c5c5a; margin-bottom: 12px; padding: 10px 12px; background: #faf9f5; border-radius: 6px; }
+  .background { font-size: 13px; color: #5c5c5a; margin-bottom: 12px; padding: 10px 12px; background: #f3f4f5; border-radius: 6px; }
   ol, ul { margin-left: 20px; font-size: 13px; }
   li { margin-bottom: 4px; }
   .status-badge { font-size: 10px; text-transform: uppercase; letter-spacing: 0.3px; padding: 2px 6px; border-radius: 4px; font-weight: 600; }
-  .status-badge.open { background: #D9775720; color: #D97757; }
-  .status-badge.in-progress { background: #b8860b20; color: #b8860b; }
-  .status-badge.completed { background: #4a7c5920; color: #4a7c59; }
+  .status-badge.open { background: #0a81d120; color: #0a81d1; }
+  .status-badge.in-progress { background: #c48a1a20; color: #c48a1a; }
+  .status-badge.completed { background: #6a8d7320; color: #6a8d73; }
   .status-badge.cancelled { background: #8c8c8a20; color: #8c8c8a; }
-  .overdue { color: #c0392b; font-weight: 600; }
-  .encounter { margin-bottom: 14px; padding: 12px; border: 1px solid #e5e4df; border-radius: 8px; }
+  .overdue { color: #e05a3a; font-weight: 600; }
+  .encounter { margin-bottom: 14px; padding: 12px; border: 1px solid #dddddd; border-radius: 8px; }
   .enc-header { font-size: 13px; margin-bottom: 6px; }
   .enc-field { font-size: 12.5px; color: #5c5c5a; margin-top: 4px; }
   .enc-label { font-weight: 600; color: #8c8c8a; font-size: 10px; text-transform: uppercase; letter-spacing: 0.3px; }
-  hr { border: none; border-top: 1px solid #e5e4df; margin: 28px 0; }
+  hr { border: none; border-top: 1px solid #dddddd; margin: 28px 0; }
   .chart-export { margin-bottom: 8px; }
   @media print {
     body { padding: 20px; }

@@ -17,10 +17,16 @@ const PRESETS = [
   { key: "custom", label: "Custom", desc: "Configure your own export" },
 ];
 
-export default function ExportModal({ chartData, onClose, isMulti = false, allTags = [] }) {
+export default function ExportModal({ chartData, onClose, isMulti = false, allTags = [], usedContexts = [] }) {
   const [preset, setPreset] = useState("meeting-prep");
   const [config, setConfig] = useState(getPresetConfig("meeting-prep"));
   const [format, setFormat] = useState("markdown"); // "markdown" | "pdf"
+
+  // Digest exclusions (only relevant when isMulti)
+  const [excludeNoEncounters, setExcludeNoEncounters] = useState(false);
+  const [excludeNoOrders, setExcludeNoOrders] = useState(false);
+  const [excludeNoProblems, setExcludeNoProblems] = useState(false);
+  const [excludeContexts, setExcludeContexts] = useState([]);
 
   const handlePresetChange = (key) => {
     setPreset(key);
@@ -69,28 +75,45 @@ export default function ExportModal({ chartData, onClose, isMulti = false, allTa
     });
   };
 
+  // Apply digest exclusions
+  const filteredChartData = isMulti
+    ? chartData.filter((c) => {
+        if (excludeNoEncounters && (!c.encounters || c.encounters.length === 0)) return false;
+        if (excludeNoOrders && (!c.orders || c.orders.length === 0)) return false;
+        if (excludeNoProblems && (!c.activeProblems || c.activeProblems.length === 0)) return false;
+        if (excludeContexts.length > 0 && excludeContexts.includes(c.context)) return false;
+        return true;
+      })
+    : chartData;
+
   // Preview counts
-  const totalEncounters = chartData.reduce(
+  const totalEncounters = filteredChartData.reduce(
     (sum, c) => sum + filterEncounters(c.encounters, config).length,
     0
   );
-  const totalOrders = chartData.reduce(
+  const totalOrders = filteredChartData.reduce(
     (sum, c) => sum + filterOrders(c.orders, config).length,
     0
   );
+
+  const toggleExcludeContext = (ctx) => {
+    setExcludeContexts((prev) =>
+      prev.includes(ctx) ? prev.filter((c) => c !== ctx) : [...prev, ctx]
+    );
+  };
 
   const handleExport = () => {
     const isDigest = preset === "weekly-digest";
 
     if (format === "markdown") {
-      const md = generateMarkdown(chartData, config, isDigest);
+      const md = generateMarkdown(filteredChartData, config, isDigest);
       const datePart = new Date().toISOString().split("T")[0];
       const namePart = chartData.length === 1
         ? chartData[0].name.replace(/\s+/g, "-").toLowerCase()
         : "digest";
       downloadMarkdown(md, `insight-${namePart}-${datePart}.md`);
     } else {
-      const html = generatePrintHtml(chartData, config);
+      const html = generatePrintHtml(filteredChartData, config);
       openPrintHtml(html);
     }
 
@@ -260,9 +283,49 @@ export default function ExportModal({ chartData, onClose, isMulti = false, allTa
           </div>
         )}
 
+        {/* Digest exclusions (multi-chart only) */}
+        {isMulti && (
+          <div className="export-config-section">
+            <span className="export-row-label">Exclude Charts</span>
+            <div className="export-checkboxes">
+              <label className="export-checkbox">
+                <input type="checkbox" checked={excludeNoEncounters} onChange={(e) => setExcludeNoEncounters(e.target.checked)} />
+                No encounters
+              </label>
+              <label className="export-checkbox">
+                <input type="checkbox" checked={excludeNoOrders} onChange={(e) => setExcludeNoOrders(e.target.checked)} />
+                No orders
+              </label>
+              <label className="export-checkbox">
+                <input type="checkbox" checked={excludeNoProblems} onChange={(e) => setExcludeNoProblems(e.target.checked)} />
+                No active problems
+              </label>
+            </div>
+            {usedContexts.length > 1 && (
+              <>
+                <span className="export-row-label" style={{ marginTop: 10, display: "block" }}>Exclude by Context</span>
+                <div className="export-checkboxes">
+                  {usedContexts.map((ctx) => (
+                    <label key={ctx} className="export-checkbox">
+                      <input
+                        type="checkbox"
+                        checked={excludeContexts.includes(ctx)}
+                        onChange={() => toggleExcludeContext(ctx)}
+                      />
+                      {ctx}
+                    </label>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+        )}
+
         {/* Preview summary */}
         <div className="export-preview">
-          {chartData.length} chart{chartData.length !== 1 ? "s" : ""} · {totalEncounters} encounter{totalEncounters !== 1 ? "s" : ""} · {totalOrders} order{totalOrders !== 1 ? "s" : ""}
+          {filteredChartData.length} chart{filteredChartData.length !== 1 ? "s" : ""}
+          {isMulti && filteredChartData.length !== chartData.length && ` (${chartData.length - filteredChartData.length} excluded)`}
+          {" · "}{totalEncounters} encounter{totalEncounters !== 1 ? "s" : ""} · {totalOrders} order{totalOrders !== 1 ? "s" : ""}
         </div>
 
         {/* Actions */}

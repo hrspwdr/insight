@@ -5,7 +5,7 @@ import {
 } from "./utils";
 import ExportModal from "./ExportModal";
 
-export default function Dashboard({ contacts, onSelectContact, allTags = [] }) {
+export default function Dashboard({ contacts, onSelectContact, allTags = [], usedContexts = [] }) {
   const [showExport, setShowExport] = useState(false);
   const overdueContacts = Object.values(contacts).filter(isOverdue);
   const upcomingFollowUps = getUpcomingFollowUps(contacts, 7);
@@ -131,6 +131,7 @@ export default function Dashboard({ contacts, onSelectContact, allTags = [] }) {
           onClose={() => setShowExport(false)}
           isMulti
           allTags={allTags}
+          usedContexts={usedContexts}
         />
       )}
     </div>

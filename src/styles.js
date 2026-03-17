@@ -1,31 +1,31 @@
 const styles = `
-  @import url('https://fonts.googleapis.com/css2?family=Charis+SIL:wght@400;700&family=Inter:wght@400;500;600&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&display=swap');
 
   :root {
-    --bg-primary: #faf9f5;
-    --bg-secondary: #F5F4EF;
+    --bg-primary: #fafafa;
+    --bg-secondary: #f3f4f5;
     --bg-card: #ffffff;
-    --text-primary: #141413;
-    --text-secondary: #5c5c5a;
-    --text-muted: #8c8c8a;
-    --accent: #D97757;
-    --accent-hover: #c4684a;
-    --accent-light: #D9775715;
-    --accent-medium: #D9775725;
-    --border: #e5e4df;
-    --border-light: #eeeee9;
-    --green: #4a7c59;
-    --green-light: #4a7c5915;
-    --red: #c0392b;
-    --red-light: #c0392b12;
-    --yellow: #b8860b;
-    --yellow-light: #b8860b12;
+    --text-primary: #252627;
+    --text-secondary: #5a5c5e;
+    --text-muted: #8a8c8e;
+    --accent: #0a81d1;
+    --accent-hover: #0870b5;
+    --accent-light: #0a81d115;
+    --accent-medium: #0a81d125;
+    --border: #dddddd;
+    --border-light: #e8e8e8;
+    --green: #6a8d73;
+    --green-light: #6a8d7315;
+    --red: #e05a3a;
+    --red-light: #e05a3a12;
+    --yellow: #c48a1a;
+    --yellow-light: #c48a1a12;
   }
 
   * { margin: 0; padding: 0; box-sizing: border-box; }
 
   body {
-    font-family: 'Inter', sans-serif;
+    font-family: 'Public Sans', sans-serif;
     background: var(--bg-primary);
     color: var(--text-primary);
     line-height: 1.5;
@@ -55,7 +55,7 @@ const styles = `
   }
 
   .sidebar-header h1 {
-    font-family: 'Charis SIL', serif;
+    font-family: 'Public Sans', sans-serif;
     font-size: 20px;
     font-weight: 700;
     color: var(--text-primary);
@@ -81,7 +81,7 @@ const styles = `
     padding: 8px 12px;
     border: 1px solid var(--border);
     border-radius: 6px;
-    font-family: 'Inter', sans-serif;
+    font-family: 'Public Sans', sans-serif;
     font-size: 13px;
     background: var(--bg-card);
     color: var(--text-primary);
@@ -125,7 +125,7 @@ const styles = `
     border: 1px solid var(--accent);
     background: var(--bg-card);
     color: var(--text-primary);
-    font-family: 'Inter', sans-serif;
+    font-family: 'Public Sans', sans-serif;
     outline: none;
     width: 100px;
   }
@@ -190,7 +190,7 @@ const styles = `
     color: white;
     border: none;
     border-radius: 6px;
-    font-family: 'Inter', sans-serif;
+    font-family: 'Public Sans', sans-serif;
     font-size: 13px;
     font-weight: 500;
     cursor: pointer;
@@ -213,7 +213,7 @@ const styles = `
   }
 
   .dashboard h2 {
-    font-family: 'Charis SIL', serif;
+    font-family: 'Public Sans', sans-serif;
     font-size: 24px;
     font-weight: 600;
     margin-bottom: 8px;
@@ -248,7 +248,7 @@ const styles = `
   }
 
   .stat-card .stat-value {
-    font-family: 'Charis SIL', serif;
+    font-family: 'Public Sans', sans-serif;
     font-size: 28px;
     font-weight: 600;
   }
@@ -257,7 +257,7 @@ const styles = `
 
   .overdue-section { margin-top: 12px; }
   .overdue-section h3 {
-    font-family: 'Charis SIL', serif;
+    font-family: 'Public Sans', sans-serif;
     font-size: 16px;
     font-weight: 600;
     margin-bottom: 12px;
@@ -266,7 +266,7 @@ const styles = `
 
   .overdue-item {
     background: var(--red-light);
-    border: 1px solid #c0392b20;
+    border: 1px solid #e05a3a20;
     border-radius: 8px;
     padding: 14px 18px;
     margin-bottom: 8px;
@@ -287,8 +287,8 @@ const styles = `
   .overdue-item-plan { font-size: 13px; color: var(--text-secondary); }
 
   .upcoming-section { margin-top: 28px; }
-  .upcoming-section h3 { font-family: 'Charis SIL', serif; font-size: 16px; font-weight: 600; margin-bottom: 12px; color: var(--yellow); }
-  .upcoming-item { background: var(--yellow-light); border: 1px solid #b8860b20; border-radius: 8px; padding: 14px 18px; margin-bottom: 8px; cursor: pointer; transition: all 0.15s; }
+  .upcoming-section h3 { font-family: 'Public Sans', sans-serif; font-size: 16px; font-weight: 600; margin-bottom: 12px; color: var(--yellow); }
+  .upcoming-item { background: var(--yellow-light); border: 1px solid #c48a1a20; border-radius: 8px; padding: 14px 18px; margin-bottom: 8px; cursor: pointer; transition: all 0.15s; }
   .upcoming-item:hover { border-color: var(--yellow); }
   .upcoming-item-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
   .upcoming-item-name { font-weight: 600; font-size: 14px; }
@@ -314,7 +314,7 @@ const styles = `
     background: transparent;
     border: 1px solid var(--border);
     border-radius: 6px;
-    font-family: 'Inter', sans-serif;
+    font-family: 'Public Sans', sans-serif;
     font-size: 12px;
     color: var(--text-secondary);
     cursor: pointer;
@@ -338,7 +338,7 @@ const styles = `
   }
 
   .chart-name {
-    font-family: 'Charis SIL', serif;
+    font-family: 'Public Sans', sans-serif;
     font-size: 22px;
     font-weight: 700;
   }
@@ -370,7 +370,7 @@ const styles = `
   .btn-chart-action {
     padding: 7px 16px;
     border-radius: 6px;
-    font-family: 'Inter', sans-serif;
+    font-family: 'Public Sans', sans-serif;
     font-size: 12.5px;
     font-weight: 500;
     cursor: pointer;
@@ -450,7 +450,7 @@ const styles = `
     padding: 7px 12px;
     border: 1px solid var(--border);
     border-radius: 6px;
-    font-family: 'Inter', sans-serif;
+    font-family: 'Public Sans', sans-serif;
     font-size: 13px;
     background: var(--bg-primary);
     color: var(--text-primary);
@@ -496,7 +496,7 @@ const styles = `
   }
 
   .section-title {
-    font-family: 'Charis SIL', serif;
+    font-family: 'Public Sans', sans-serif;
     font-size: 14px;
     font-weight: 600;
     text-transform: uppercase;
@@ -516,7 +516,7 @@ const styles = `
     background: transparent;
     color: var(--text-muted);
     cursor: pointer;
-    font-family: 'Inter', sans-serif;
+    font-family: 'Public Sans', sans-serif;
     transition: all 0.15s;
   }
 
@@ -534,7 +534,7 @@ const styles = `
   .problem-item:last-child { border-bottom: none; }
 
   .problem-number {
-    font-family: 'Charis SIL', serif;
+    font-family: 'Public Sans', sans-serif;
     font-weight: 600;
     color: var(--text-muted);
     min-width: 20px;
@@ -594,7 +594,7 @@ const styles = `
   }
 
   .encounter-date {
-    font-family: 'Charis SIL', serif;
+    font-family: 'Public Sans', sans-serif;
     font-weight: 600;
     font-size: 14px;
   }
@@ -658,7 +658,7 @@ const styles = `
     background: transparent;
     color: inherit;
     cursor: pointer;
-    font-family: 'Inter', sans-serif;
+    font-family: 'Public Sans', sans-serif;
     font-weight: 500;
   }
 
@@ -679,7 +679,7 @@ const styles = `
     background: transparent;
     color: var(--text-muted);
     cursor: pointer;
-    font-family: 'Inter', sans-serif;
+    font-family: 'Public Sans', sans-serif;
     opacity: 0;
     transition: opacity 0.15s;
   }
@@ -741,6 +741,15 @@ const styles = `
     border-left: 2px solid var(--green-light);
   }
 
+  .order-progress-note {
+    font-size: 12px;
+    color: var(--text-secondary);
+    font-style: italic;
+    margin-top: 4px;
+    padding-left: 12px;
+    border-left: 2px solid var(--yellow-light);
+  }
+
   .order-actions {
     display: flex;
     gap: 4px;
@@ -758,7 +767,7 @@ const styles = `
     background: transparent;
     color: var(--text-muted);
     cursor: pointer;
-    font-family: 'Inter', sans-serif;
+    font-family: 'Public Sans', sans-serif;
   }
 
   .btn-order-action:hover { border-color: var(--accent); color: var(--accent); }
@@ -775,12 +784,71 @@ const styles = `
     background: transparent;
     color: var(--text-muted);
     cursor: pointer;
-    font-family: 'Inter', sans-serif;
+    font-family: 'Public Sans', sans-serif;
     margin-top: 6px;
     transition: all 0.15s;
   }
 
   .order-from-plan:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* ─── Encounter Modal (wide) ─── */
+  .encounter-modal-wide {
+    width: 820px;
+    max-width: 95vw;
+  }
+
+  .encounter-top-row {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+
+  .encounter-top-row > .form-group {
+    margin-bottom: 0;
+  }
+
+  .encounter-body {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+
+  .encounter-body-left {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .encounter-body-right {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .encounter-body-right .form-group {
+    margin-bottom: 0;
+  }
+
+  .encounter-body-left .form-group {
+    margin-bottom: 0;
+  }
+
+  @media (max-width: 768px) {
+    .encounter-modal-wide {
+      width: 95vw;
+    }
+
+    .encounter-top-row {
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .encounter-body {
+      flex-direction: column;
+      gap: 8px;
+    }
+  }
 
   /* ─── Quick Capture ─── */
   .quick-capture-modal { width: 440px; }
@@ -810,7 +878,7 @@ const styles = `
     background: transparent;
     color: var(--text-muted);
     cursor: pointer;
-    font-family: 'Inter', sans-serif;
+    font-family: 'Public Sans', sans-serif;
   }
 
   .quick-capture-change:hover { border-color: var(--accent); color: var(--accent); }
@@ -968,7 +1036,7 @@ const styles = `
     }
 
     .mobile-header h1 {
-      font-family: 'Charis SIL', serif;
+      font-family: 'Public Sans', sans-serif;
       font-size: 18px;
       font-weight: 700;
       flex: 1;
@@ -988,7 +1056,7 @@ const styles = `
       border: 1px solid var(--border);
       background: transparent;
       color: var(--text-secondary);
-      font-family: 'Inter', sans-serif;
+      font-family: 'Public Sans', sans-serif;
       font-size: 13px;
       cursor: pointer;
     }
@@ -1031,7 +1099,7 @@ const styles = `
   }
 
   .modal h3 {
-    font-family: 'Charis SIL', serif;
+    font-family: 'Public Sans', sans-serif;
     font-size: 18px;
     font-weight: 600;
     margin-bottom: 20px;
@@ -1056,7 +1124,7 @@ const styles = `
     padding: 9px 12px;
     border: 1px solid var(--border);
     border-radius: 6px;
-    font-family: 'Inter', sans-serif;
+    font-family: 'Public Sans', sans-serif;
     font-size: 13.5px;
     color: var(--text-primary);
     background: var(--bg-primary);
@@ -1093,7 +1161,7 @@ const styles = `
     border: 1px solid var(--border);
     background: transparent;
     color: var(--text-secondary);
-    font-family: 'Inter', sans-serif;
+    font-family: 'Public Sans', sans-serif;
     font-size: 13px;
     font-weight: 500;
     cursor: pointer;
@@ -1108,7 +1176,7 @@ const styles = `
     border: none;
     background: var(--accent);
     color: white;
-    font-family: 'Inter', sans-serif;
+    font-family: 'Public Sans', sans-serif;
     font-size: 13px;
     font-weight: 500;
     cursor: pointer;
@@ -1131,7 +1199,7 @@ const styles = `
   .empty-state-icon { font-size: 48px; margin-bottom: 16px; opacity: 0.3; }
 
   .empty-state h3 {
-    font-family: 'Charis SIL', serif;
+    font-family: 'Public Sans', sans-serif;
     font-size: 18px;
     font-weight: 600;
     color: var(--text-secondary);
@@ -1154,7 +1222,7 @@ const styles = `
     border: none;
     background: var(--red);
     color: white;
-    font-family: 'Inter', sans-serif;
+    font-family: 'Public Sans', sans-serif;
     font-size: 13px;
     font-weight: 500;
     cursor: pointer;
@@ -1165,7 +1233,7 @@ const styles = `
     align-items: center;
     justify-content: center;
     height: 100vh;
-    font-family: 'Charis SIL', serif;
+    font-family: 'Public Sans', sans-serif;
     color: var(--text-muted);
     font-size: 16px;
   }
@@ -1188,7 +1256,7 @@ const styles = `
     padding: 9px 14px;
     border: 1px solid var(--border);
     border-radius: 8px;
-    font-family: 'Inter', sans-serif;
+    font-family: 'Public Sans', sans-serif;
     font-size: 13.5px;
     color: var(--text-primary);
     background: var(--bg-card);
@@ -1232,7 +1300,7 @@ const styles = `
   }
 
   .search-view-header h2 {
-    font-family: 'Charis SIL', serif;
+    font-family: 'Public Sans', sans-serif;
     font-size: 20px;
     font-weight: 700;
   }
@@ -1358,7 +1426,7 @@ const styles = `
     cursor: pointer;
     transition: all 0.15s;
     text-align: left;
-    font-family: 'Inter', sans-serif;
+    font-family: 'Public Sans', sans-serif;
   }
 
   .export-preset-btn:hover {
@@ -1415,7 +1483,7 @@ const styles = `
     border: none;
     background: var(--bg-primary);
     color: var(--text-secondary);
-    font-family: 'Inter', sans-serif;
+    font-family: 'Public Sans', sans-serif;
     font-size: 12.5px;
     cursor: pointer;
     transition: all 0.15s;
@@ -1447,7 +1515,7 @@ const styles = `
     padding: 7px 10px;
     border: 1px solid var(--border);
     border-radius: 6px;
-    font-family: 'Inter', sans-serif;
+    font-family: 'Public Sans', sans-serif;
     font-size: 13px;
     color: var(--text-primary);
     background: var(--bg-primary);
@@ -1608,7 +1676,7 @@ const styles = `
     border: none;
     outline: none;
     background: transparent;
-    font-family: 'Inter', sans-serif;
+    font-family: 'Public Sans', sans-serif;
     font-size: 13px;
     color: var(--text-primary);
     flex: 1;
@@ -1663,7 +1731,7 @@ const styles = `
     background: transparent;
     color: var(--text-secondary);
     cursor: pointer;
-    font-family: 'Inter', sans-serif;
+    font-family: 'Public Sans', sans-serif;
     transition: all 0.15s;
     white-space: nowrap;
   }

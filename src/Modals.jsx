@@ -126,9 +126,10 @@ export function EncounterModal({ encounter, onSave, onClose, allTags = [] }) {
   const overlay = useOverlayClose(onClose);
   return (
     <div className="modal-overlay" onMouseDown={overlay.onMouseDown} onMouseUp={overlay.onMouseUp}>
-      <div className="modal">
+      <div className="modal encounter-modal-wide">
         <h3>{encounter ? "Edit Encounter" : "New Encounter"}</h3>
-        <div className="form-row">
+        {/* Top row: date, type, tags */}
+        <div className="encounter-top-row">
           <div className="form-group">
             <label>Date</label>
             <input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
@@ -139,26 +140,38 @@ export function EncounterModal({ encounter, onSave, onClose, allTags = [] }) {
               {ENCOUNTER_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
             </select>
           </div>
+          <div className="form-group" style={{ flex: 1 }}>
+            <label>Project Tags</label>
+            <TagInput tags={tags} allTags={allTags} onChange={setTags} />
+          </div>
         </div>
-        <div className="form-group">
-          <label>Narrative</label>
-          <textarea value={narrative} onChange={(e) => setNarrative(e.target.value)} placeholder="What happened? What was discussed?" rows={4} />
-        </div>
-        <div className="form-group">
-          <label>Assessment</label>
-          <textarea value={assessment} onChange={(e) => setAssessment(e.target.value)} placeholder="Current state of the relationship/situation..." rows={3} />
-        </div>
-        <div className="form-group">
-          <label>Plan</label>
-          <textarea value={plan} onChange={(e) => setPlan(e.target.value)} placeholder="What needs to happen next? Commitments made?" rows={3} />
-        </div>
-        <div className="form-group">
-          <label>Follow-up Date (optional)</label>
-          <input type="date" value={followUpDate || ""} onChange={(e) => setFollowUpDate(e.target.value)} />
-        </div>
-        <div className="form-group">
-          <label>Project Tags</label>
-          <TagInput tags={tags} allTags={allTags} onChange={setTags} />
+        {/* Two-column body: narrative left, assessment/plan/followup right */}
+        <div className="encounter-body">
+          <div className="encounter-body-left">
+            <div className="form-group" style={{ flex: 1, display: "flex", flexDirection: "column" }}>
+              <label>Narrative</label>
+              <textarea
+                value={narrative}
+                onChange={(e) => setNarrative(e.target.value)}
+                placeholder="What happened? What was discussed?"
+                style={{ flex: 1, minHeight: "160px", resize: "vertical" }}
+              />
+            </div>
+          </div>
+          <div className="encounter-body-right">
+            <div className="form-group">
+              <label>Assessment</label>
+              <textarea value={assessment} onChange={(e) => setAssessment(e.target.value)} placeholder="Current state of the relationship/situation..." rows={4} />
+            </div>
+            <div className="form-group">
+              <label>Plan</label>
+              <textarea value={plan} onChange={(e) => setPlan(e.target.value)} placeholder="What needs to happen next? Commitments made?" rows={4} />
+            </div>
+            <div className="form-group">
+              <label>Follow-up Date (optional)</label>
+              <input type="date" value={followUpDate || ""} onChange={(e) => setFollowUpDate(e.target.value)} />
+            </div>
+          </div>
         </div>
         <div className="form-actions">
           <button className="btn-cancel" onClick={onClose}>Cancel</button>
@@ -220,6 +233,7 @@ export function OrderModal({ order, onSave, onClose, allTags = [] }) {
   const [dueDate, setDueDate] = useState(order?.dueDate || "");
   const [status, setStatus] = useState(order?.status || "open");
   const [completionNote, setCompletionNote] = useState(order?.completionNote || "");
+  const [progressNotes, setProgressNotes] = useState(order?.progressNotes || "");
   const [tags, setTags] = useState(order?.tags || []);
 
   const handleSave = () => {
@@ -230,6 +244,7 @@ export function OrderModal({ order, onSave, onClose, allTags = [] }) {
       dueDate: dueDate || null,
       status,
       completionNote: (status === "completed" || status === "cancelled") ? completionNote.trim() || null : null,
+      progressNotes: status === "in-progress" ? progressNotes.trim() || null : (order?.progressNotes || null),
       sourceEncounterId: order?.sourceEncounterId || null,
       createdAt: order?.createdAt || new Date().toISOString(),
       tags,
@@ -265,6 +280,17 @@ export function OrderModal({ order, onSave, onClose, allTags = [] }) {
             </select>
           </div>
         </div>
+        {status === "in-progress" && (
+          <div className="form-group">
+            <label>Progress Notes (optional)</label>
+            <textarea
+              value={progressNotes}
+              onChange={(e) => setProgressNotes(e.target.value)}
+              placeholder="Current status, blockers, next steps..."
+              rows={2}
+            />
+          </div>
+        )}
         {(status === "completed" || status === "cancelled") && (
           <div className="form-group">
             <label>{status === "completed" ? "Completion Note" : "Cancellation Reason"} (optional)</label>

@@ -207,6 +207,9 @@ export default function ChartView({
                           <span key={t} className="tag-badge small">{t}</span>
                         ))}
                       </div>
+                      {order.progressNotes && (
+                        <div className="order-progress-note">{order.progressNotes}</div>
+                      )}
                     </div>
                     <div className="order-actions">
                       <button className="btn-order-action" onClick={() => { setEditingOrder(order); setOrderFromPlan(null); setShowOrderModal(true); }}>Edit</button>
