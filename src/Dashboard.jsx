@@ -92,7 +92,11 @@ export default function Dashboard({ contacts, onSelectContact, allTags = [], use
                 <span className="overdue-item-name">{c.name}</span>
                 <span className="overdue-item-days">{daysOverdue(order.dueDate)}d overdue</span>
               </div>
-              <div className="overdue-item-plan">{order.description}</div>
+              <div className="overdue-item-plan">
+                <span className={`dashboard-order-badge ${order.status}`}>{order.status}</span>
+                {order.description}
+              </div>
+              {order.progressNotes && <div className="dashboard-order-note">{order.progressNotes}</div>}
             </div>
           ))}
         </div>
@@ -110,7 +114,11 @@ export default function Dashboard({ contacts, onSelectContact, allTags = [], use
                   <span className="upcoming-item-name">{c.name}</span>
                   <span className="upcoming-item-days">{formatDate(order.dueDate)} ({label})</span>
                 </div>
-                <div className="upcoming-item-plan">{order.description}</div>
+                <div className="upcoming-item-plan">
+                  <span className={`dashboard-order-badge ${order.status}`}>{order.status}</span>
+                  {order.description}
+                </div>
+                {order.progressNotes && <div className="dashboard-order-note">{order.progressNotes}</div>}
               </div>
             );
           })}

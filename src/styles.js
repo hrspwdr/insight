@@ -284,7 +284,31 @@ const styles = `
 
   .overdue-item-name { font-weight: 600; font-size: 14px; }
   .overdue-item-days { font-size: 12px; color: var(--red); font-weight: 500; }
-  .overdue-item-plan { font-size: 13px; color: var(--text-secondary); }
+  .overdue-item-plan { font-size: 13px; color: var(--text-secondary); white-space: pre-wrap; }
+
+  .dashboard-order-badge {
+    display: inline-block;
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-weight: 600;
+    margin-right: 6px;
+    vertical-align: middle;
+  }
+  .dashboard-order-badge.open { background: var(--accent-light); color: var(--accent); }
+  .dashboard-order-badge.in-progress { background: var(--yellow-light); color: var(--yellow); }
+
+  .dashboard-order-note {
+    font-size: 12px;
+    color: var(--text-muted);
+    font-style: italic;
+    margin-top: 4px;
+    padding-left: 12px;
+    border-left: 2px solid var(--border);
+    white-space: pre-wrap;
+  }
 
   .upcoming-section { margin-top: 28px; }
   .upcoming-section h3 { font-family: 'Public Sans', sans-serif; font-size: 16px; font-weight: 600; margin-bottom: 12px; color: var(--yellow); }
@@ -293,7 +317,7 @@ const styles = `
   .upcoming-item-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
   .upcoming-item-name { font-weight: 600; font-size: 14px; }
   .upcoming-item-days { font-size: 12px; color: var(--yellow); font-weight: 500; }
-  .upcoming-item-plan { font-size: 13px; color: var(--text-secondary); }
+  .upcoming-item-plan { font-size: 13px; color: var(--text-secondary); white-space: pre-wrap; }
 
   /* ─── Chart View ─── */
   .chart {
@@ -648,6 +672,7 @@ const styles = `
     font-size: 12px;
     font-style: italic;
     opacity: 0.85;
+    white-space: pre-wrap;
   }
 
   .btn-resolve {
@@ -725,7 +750,7 @@ const styles = `
   .order-status-badge.cancelled { background: var(--bg-secondary); color: var(--text-muted); text-decoration: line-through; }
 
   .order-content { flex: 1; min-width: 0; }
-  .order-description { font-size: 13.5px; color: var(--text-primary); line-height: 1.5; }
+  .order-description { font-size: 13.5px; color: var(--text-primary); line-height: 1.5; white-space: pre-wrap; }
   .order-description.done { text-decoration: line-through; color: var(--text-muted); }
   .order-meta { font-size: 11.5px; color: var(--text-muted); margin-top: 3px; display: flex; gap: 8px; align-items: center; }
   .order-meta .overdue { color: var(--red); font-weight: 500; }
@@ -739,6 +764,7 @@ const styles = `
     margin-top: 4px;
     padding-left: 12px;
     border-left: 2px solid var(--green-light);
+    white-space: pre-wrap;
   }
 
   .order-progress-note {
@@ -748,6 +774,7 @@ const styles = `
     margin-top: 4px;
     padding-left: 12px;
     border-left: 2px solid var(--yellow-light);
+    white-space: pre-wrap;
   }
 
   .order-actions {
