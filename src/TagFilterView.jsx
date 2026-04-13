@@ -91,6 +91,12 @@ export default function TagFilterView({ tag, contacts, onSelectContact }) {
                     </span>
                   )}
                 </span>
+                {order.progressNotes && (
+                  <div className="order-progress-note">{order.progressNotes}</div>
+                )}
+                {order.completionNote && (
+                  <div className="order-completion-note">{order.completionNote}</div>
+                )}
               </div>
             );
           })}
