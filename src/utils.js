@@ -1,7 +1,7 @@
 export const API_URL = "/api/data";
 
 export const ENCOUNTER_TYPES = ["Meeting", "Call", "Email", "Informal", "Presentation", "Note"];
-export const ORDER_STATUSES = ["open", "in-progress", "completed", "cancelled"];
+export const ORDER_STATUSES = ["open", "in-progress", "completed", "closed", "cancelled"];
 
 export const generateId = () => Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
 
@@ -69,7 +69,7 @@ export const daysUntil = (dateStr) => {
 };
 
 export const isOrderOverdue = (order) => {
-  if (!order.dueDate || order.status === "completed" || order.status === "cancelled") return false;
+  if (!order.dueDate || order.status === "closed" || order.status === "cancelled") return false;
   return localDate(order.dueDate) < localToday();
 };
 
@@ -92,7 +92,7 @@ export const getUpcomingOrders = (allContacts, days = 7) => {
   const results = [];
   Object.values(allContacts).forEach((contact) => {
     (contact.orders || []).forEach((order) => {
-      if (order.status === "completed" || order.status === "cancelled") return;
+      if (order.status === "closed" || order.status === "cancelled") return;
       if (!order.dueDate) return;
       const d = localDate(order.dueDate);
       if (d >= today && d <= cutoff) {
@@ -104,7 +104,7 @@ export const getUpcomingOrders = (allContacts, days = 7) => {
 };
 
 export const getActiveOrderCount = (contact) => {
-  return (contact.orders || []).filter((o) => o.status === "open" || o.status === "in-progress").length;
+  return (contact.orders || []).filter((o) => o.status === "open" || o.status === "in-progress" || o.status === "completed").length;
 };
 
 export const contactHasOverdueOrders = (contact) => {

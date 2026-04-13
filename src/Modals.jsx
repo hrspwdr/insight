@@ -233,6 +233,7 @@ export function OrderModal({ order, onSave, onClose, allTags = [] }) {
   const [dueDate, setDueDate] = useState(order?.dueDate || "");
   const [status, setStatus] = useState(order?.status || "open");
   const [completionNote, setCompletionNote] = useState(order?.completionNote || "");
+  const [closingNote, setClosingNote] = useState(order?.closingNote || "");
   const [progressNotes, setProgressNotes] = useState(order?.progressNotes || "");
   const [tags, setTags] = useState(order?.tags || []);
 
@@ -243,7 +244,8 @@ export function OrderModal({ order, onSave, onClose, allTags = [] }) {
       description: description.trim(),
       dueDate: dueDate || null,
       status,
-      completionNote: (status === "completed" || status === "cancelled") ? completionNote.trim() || null : null,
+      completionNote: (status === "completed" || status === "cancelled") ? completionNote.trim() || null : (order?.completionNote || null),
+      closingNote: status === "closed" ? closingNote.trim() || null : (order?.closingNote || null),
       progressNotes: status === "in-progress" ? progressNotes.trim() || null : (order?.progressNotes || null),
       sourceEncounterId: order?.sourceEncounterId || null,
       createdAt: order?.createdAt || new Date().toISOString(),
@@ -297,7 +299,18 @@ export function OrderModal({ order, onSave, onClose, allTags = [] }) {
             <textarea
               value={completionNote}
               onChange={(e) => setCompletionNote(e.target.value)}
-              placeholder={status === "completed" ? "How was this resolved?" : "Why was this cancelled?"}
+              placeholder={status === "completed" ? "What was done? What needs presenting?" : "Why was this cancelled?"}
+              rows={2}
+            />
+          </div>
+        )}
+        {status === "closed" && (
+          <div className="form-group">
+            <label>Closing Note (optional)</label>
+            <textarea
+              value={closingNote}
+              onChange={(e) => setClosingNote(e.target.value)}
+              placeholder="Final notes — presented, discussed, filed away..."
               rows={2}
             />
           </div>

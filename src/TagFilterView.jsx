@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { formatDate, isOrderOverdue, daysOverdue } from "./utils";
 
-const isClosedOrder = (o) => o.status === "completed" || o.status === "cancelled";
+const isClosedOrder = (o) => o.status === "closed" || o.status === "cancelled";
 
 export default function TagFilterView({ tag, contacts, onSelectContact }) {
   const [hideClosedOrders, setHideClosedOrders] = useState(false);
@@ -96,6 +96,9 @@ export default function TagFilterView({ tag, contacts, onSelectContact }) {
                 )}
                 {order.completionNote && (
                   <div className="order-completion-note">{order.completionNote}</div>
+                )}
+                {order.closingNote && (
+                  <div className="order-completion-note">{order.closingNote}</div>
                 )}
               </div>
             );

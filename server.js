@@ -115,6 +115,7 @@ try { db.exec("ALTER TABLE encounters ADD COLUMN tags TEXT NOT NULL DEFAULT '[]'
 try { db.exec("ALTER TABLE orders ADD COLUMN tags TEXT NOT NULL DEFAULT '[]'"); } catch { /* column already exists */ }
 try { db.exec("ALTER TABLE active_problems ADD COLUMN status TEXT NOT NULL DEFAULT 'active'"); } catch { /* column already exists */ }
 try { db.exec("ALTER TABLE orders ADD COLUMN progressNotes TEXT"); } catch { /* column already exists */ }
+try { db.exec("ALTER TABLE orders ADD COLUMN closingNote TEXT"); } catch { /* column already exists */ }
 
 // ─── FTS rebuild (full) ───
 
@@ -168,7 +169,7 @@ function rebuildSearchIndex() {
     for (const o of db.prepare("SELECT o.*, c.name as contactName FROM orders o JOIN contacts c ON o.contactId = c.id").all()) {
       let tags = [];
       try { tags = JSON.parse(o.tags || "[]"); } catch { /* ignore */ }
-      const text = [o.description, o.completionNote, o.progressNotes, ...tags].filter(Boolean).join(" ");
+      const text = [o.description, o.completionNote, o.closingNote, o.progressNotes, ...tags].filter(Boolean).join(" ");
       if (text.trim()) {
         insertIdx.run("order", o.id, o.contactId, o.contactName, text);
       }
@@ -245,7 +246,7 @@ function updateOrderIndex(orderId) {
     if (o) {
       let tags = [];
       try { tags = JSON.parse(o.tags || "[]"); } catch { /* ignore */ }
-      const text = [o.description, o.completionNote, o.progressNotes, ...tags].filter(Boolean).join(" ");
+      const text = [o.description, o.completionNote, o.closingNote, o.progressNotes, ...tags].filter(Boolean).join(" ");
       if (text.trim()) ftsInsert.run("order", o.id, o.contactId, o.contactName, text);
     }
   });
@@ -405,6 +406,7 @@ function getAllData() {
         dueDate: o.dueDate,
         status: o.status,
         completionNote: o.completionNote,
+        closingNote: o.closingNote,
         progressNotes: o.progressNotes,
         sourceEncounterId: o.sourceEncounterId,
         createdAt: o.createdAt,
@@ -861,11 +863,11 @@ fastify.post("/api/contacts/:contactId/orders", { preHandler: authRequired }, as
     const { contactId } = request.params;
     const ord = request.body;
     db.prepare(
-      `INSERT INTO orders (id, contactId, description, dueDate, status, completionNote, progressNotes, sourceEncounterId, createdAt, tags)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      `INSERT INTO orders (id, contactId, description, dueDate, status, completionNote, closingNote, progressNotes, sourceEncounterId, createdAt, tags)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     ).run(
       ord.id, contactId, ord.description || "", ord.dueDate || null,
-      ord.status || "open", ord.completionNote || null, ord.progressNotes || null,
+      ord.status || "open", ord.completionNote || null, ord.closingNote || null, ord.progressNotes || null,
       ord.sourceEncounterId || null, ord.createdAt || new Date().toISOString(),
       JSON.stringify(ord.tags || [])
     );
@@ -885,7 +887,7 @@ fastify.patch("/api/orders/:id", { preHandler: authRequired }, async (request, r
     const existing = db.prepare("SELECT * FROM orders WHERE id = ?").get(id);
     if (!existing) { reply.status(404); return { ok: false, error: "Order not found" }; }
     db.prepare(
-      `UPDATE orders SET description = ?, dueDate = ?, status = ?, completionNote = ?, progressNotes = ?,
+      `UPDATE orders SET description = ?, dueDate = ?, status = ?, completionNote = ?, closingNote = ?, progressNotes = ?,
        sourceEncounterId = ?, tags = ?
        WHERE id = ?`
     ).run(
@@ -893,6 +895,7 @@ fastify.patch("/api/orders/:id", { preHandler: authRequired }, async (request, r
       ord.dueDate !== undefined ? ord.dueDate : existing.dueDate,
       ord.status !== undefined ? ord.status : existing.status,
       ord.completionNote !== undefined ? ord.completionNote : existing.completionNote,
+      ord.closingNote !== undefined ? ord.closingNote : existing.closingNote,
       ord.progressNotes !== undefined ? ord.progressNotes : existing.progressNotes,
       ord.sourceEncounterId !== undefined ? ord.sourceEncounterId : existing.sourceEncounterId,
       ord.tags !== undefined ? JSON.stringify(ord.tags) : existing.tags,

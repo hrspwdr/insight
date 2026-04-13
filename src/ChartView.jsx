@@ -78,8 +78,8 @@ export default function ChartView({
     setShowEditContact(false);
   };
 
-  const activeOrders = (contact.orders || []).filter((o) => o.status === "open" || o.status === "in-progress");
-  const completedOrders = (contact.orders || []).filter((o) => o.status === "completed" || o.status === "cancelled");
+  const activeOrders = (contact.orders || []).filter((o) => o.status === "open" || o.status === "in-progress" || o.status === "completed");
+  const closedOrders = (contact.orders || []).filter((o) => o.status === "closed" || o.status === "cancelled");
 
   return (
     <div className="chart">
@@ -156,10 +156,10 @@ export default function ChartView({
       {/* Orders */}
       <div className="orders-section">
         <div className="section-title">
-          <span>Orders ({activeOrders.length} active{completedOrders.length > 0 ? `, ${completedOrders.length} closed` : ""})</span>
+          <span>Orders ({activeOrders.length} active{closedOrders.length > 0 ? `, ${closedOrders.length} closed` : ""})</span>
           <button className="btn-add-small" onClick={() => { setEditingOrder(null); setOrderFromPlan(null); setShowOrderModal(true); }}>+ Add</button>
         </div>
-        {activeOrders.length === 0 && completedOrders.length === 0 ? (
+        {activeOrders.length === 0 && closedOrders.length === 0 ? (
           <div style={{ fontSize: "13px", color: "var(--text-muted)", padding: "4px 0" }}>No orders</div>
         ) : (
           <>
@@ -210,6 +210,9 @@ export default function ChartView({
                       {order.progressNotes && (
                         <div className="order-progress-note">{order.progressNotes}</div>
                       )}
+                      {order.completionNote && (
+                        <div className="order-completion-note">{order.completionNote}</div>
+                      )}
                     </div>
                     <div className="order-actions">
                       <button className="btn-order-action" onClick={() => { setEditingOrder(order); setOrderFromPlan(null); setShowOrderModal(true); }}>Edit</button>
@@ -218,12 +221,12 @@ export default function ChartView({
                   </div>
                 );
               })}
-            {completedOrders.length > 0 && (
+            {closedOrders.length > 0 && (
               <details style={{ marginTop: 8 }}>
                 <summary style={{ fontSize: "12px", color: "var(--text-muted)", cursor: "pointer", padding: "4px 0" }}>
-                  {completedOrders.length} closed order{completedOrders.length !== 1 ? "s" : ""}
+                  {closedOrders.length} closed order{closedOrders.length !== 1 ? "s" : ""}
                 </summary>
-                {completedOrders
+                {closedOrders
                   .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0))
                   .map((order) => (
                     <div className="order-item" key={order.id}>
@@ -232,6 +235,9 @@ export default function ChartView({
                         <div className="order-description done">{order.description}</div>
                         {order.completionNote && (
                           <div className="order-completion-note">{order.completionNote}</div>
+                        )}
+                        {order.closingNote && (
+                          <div className="order-completion-note">{order.closingNote}</div>
                         )}
                       </div>
                       <div className="order-actions">

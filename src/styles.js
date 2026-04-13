@@ -747,7 +747,8 @@ const styles = `
   .order-status-badge.open { background: var(--accent-light); color: var(--accent); }
   .order-status-badge.in-progress { background: var(--yellow-light); color: var(--yellow); }
   .order-status-badge.completed { background: var(--green-light); color: var(--green); }
-  .order-status-badge.cancelled { background: var(--bg-secondary); color: var(--text-muted); text-decoration: line-through; }
+  .order-status-badge.closed { background: var(--bg-secondary); color: var(--text-muted); }
+  .order-status-badge.cancelled { background: var(--red-light); color: var(--red); text-decoration: line-through; }
 
   .order-content { flex: 1; min-width: 0; }
   .order-description { font-size: 13.5px; color: var(--text-primary); line-height: 1.5; white-space: pre-wrap; }

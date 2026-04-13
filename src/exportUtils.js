@@ -28,7 +28,7 @@ export function filterOrders(orders, config) {
   if (!orders) return [];
   if (config.ordersMode === "none") return [];
   let filtered = config.ordersMode === "active"
-    ? orders.filter((o) => o.status === "open" || o.status === "in-progress")
+    ? orders.filter((o) => o.status === "open" || o.status === "in-progress" || o.status === "completed")
     : [...orders];
 
   if (config.filterTags && config.filterTags.length > 0) {
@@ -134,6 +134,7 @@ function chartToMarkdown(contact, config) {
         lines.push(`- [${o.status}] ${o.description}${dueStr}${tagStr}`);
         if (o.progressNotes) lines.push(`  - _${o.progressNotes}_`);
         if (o.completionNote) lines.push(`  - _${o.completionNote}_`);
+        if (o.closingNote) lines.push(`  - _${o.closingNote}_`);
       });
     }
   }
@@ -255,6 +256,7 @@ function chartToHtml(contact, config) {
         let noteHtml = "";
         if (o.progressNotes) noteHtml += `<br><em>${escHtml(o.progressNotes)}</em>`;
         if (o.completionNote) noteHtml += `<br><em>${escHtml(o.completionNote)}</em>`;
+        if (o.closingNote) noteHtml += `<br><em>${escHtml(o.closingNote)}</em>`;
         html += `<li><span class="status-badge ${o.status}">${o.status}</span> ${escHtml(o.description)}${dueStr}${noteHtml}</li>`;
       });
       html += `</ul>`;
@@ -335,7 +337,8 @@ export function generatePrintHtml(chartData, config) {
   .status-badge.open { background: #0a81d120; color: #0a81d1; }
   .status-badge.in-progress { background: #c48a1a20; color: #c48a1a; }
   .status-badge.completed { background: #6a8d7320; color: #6a8d73; }
-  .status-badge.cancelled { background: #8c8c8a20; color: #8c8c8a; }
+  .status-badge.closed { background: #8c8c8a20; color: #8c8c8a; }
+  .status-badge.cancelled { background: #e05a3a20; color: #e05a3a; text-decoration: line-through; }
   .overdue { color: #e05a3a; font-weight: 600; }
   .encounter { margin-bottom: 14px; padding: 12px; border: 1px solid #dddddd; border-radius: 8px; }
   .enc-header { font-size: 13px; margin-bottom: 6px; }

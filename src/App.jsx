@@ -302,7 +302,7 @@ export default function App() {
     const contact = contacts[contactId];
     const order = (contact?.orders || []).find((o) => o.id === orderId);
     if (!order) return;
-    const cycle = { "open": "in-progress", "in-progress": "completed", "completed": "open", "cancelled": "open" };
+    const cycle = { "open": "in-progress", "in-progress": "completed", "completed": "closed", "closed": "open", "cancelled": "open" };
     const newStatus = cycle[order.status] || "open";
     try { await api.updateOrder(orderId, { status: newStatus }); } catch (e) { console.error("Failed to cycle order status:", e); }
     setContacts((prev) => {
