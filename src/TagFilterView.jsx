@@ -5,14 +5,15 @@ const isClosedOrder = (o) => o.status === "closed" || o.status === "cancelled";
 
 export default function TagFilterView({ tag, contacts, onSelectContact }) {
   const [hideClosedOrders, setHideClosedOrders] = useState(false);
+  const [hideEncounters, setHideEncounters] = useState(false);
 
   // Gather all encounters and orders with this tag, grouped by contact
   const groups = [];
 
   for (const contact of Object.values(contacts)) {
-    const matchingEnc = (contact.encounters || []).filter(
-      (e) => e.tags?.includes(tag)
-    );
+    const matchingEnc = hideEncounters
+      ? []
+      : (contact.encounters || []).filter((e) => e.tags?.includes(tag));
     const allMatchingOrd = (contact.orders || []).filter(
       (o) => o.tags?.includes(tag)
     );
@@ -44,7 +45,7 @@ export default function TagFilterView({ tag, contacts, onSelectContact }) {
           </span>
         </h2>
       </div>
-      <div style={{ marginBottom: 16 }}>
+      <div style={{ marginBottom: 16, display: "flex", gap: 16 }}>
         <label className="export-checkbox">
           <input
             type="checkbox"
@@ -52,6 +53,14 @@ export default function TagFilterView({ tag, contacts, onSelectContact }) {
             onChange={(e) => setHideClosedOrders(e.target.checked)}
           />
           Hide closed orders
+        </label>
+        <label className="export-checkbox">
+          <input
+            type="checkbox"
+            checked={hideEncounters}
+            onChange={(e) => setHideEncounters(e.target.checked)}
+          />
+          Hide encounters
         </label>
       </div>
 
